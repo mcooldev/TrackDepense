@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "51054736482",
+    "project_id": "track-depenses",
+    "storage_bucket": "track-depenses.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:51054736482:android:965faa8d35e625d5768d3b",
+        "android_client_info": {
+          "package_name": "com.mcooldev.track_depenses"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCFii4gFcVDMheI4JgEG8lVwzPxqyhrfH0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
