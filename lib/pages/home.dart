@@ -179,8 +179,10 @@ class _HomeState extends State<Home> {
                         padding: const WidgetStatePropertyAll(
                           EdgeInsets.only(left: 20),
                         ),
-                        backgroundColor: const WidgetStatePropertyAll(
-                          Colors.white,
+                        backgroundColor: WidgetStatePropertyAll(
+                          Theme.of(context).brightness == Brightness.dark
+                              ? Colors.black.withValues(alpha: 0.5)
+                              : Colors.white,
                         ),
                         hintText: "Chercher une mission en cours",
                         hintStyle: WidgetStatePropertyAll(
@@ -340,13 +342,14 @@ class _HomeState extends State<Home> {
                                         ),
                                       )
                                     : ListView.builder(
-                                        itemCount: filteredOnGoingMissions.length,
+                                        itemCount:
+                                            filteredOnGoingMissions.length,
                                         shrinkWrap: true,
                                         physics: const BouncingScrollPhysics(),
                                         itemBuilder: (ctx, index) {
                                           //
                                           final mission =
-                                          filteredOnGoingMissions[index];
+                                              filteredOnGoingMissions[index];
 
                                           //
                                           return MissionContainerWidget(

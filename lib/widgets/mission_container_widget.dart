@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -104,6 +105,7 @@ class MissionContainerWidget extends StatelessWidget {
             ),
 
             const SizedBox(height: 4),
+
             /// Capitale actuel et initial
             Container(
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
@@ -129,7 +131,9 @@ class MissionContainerWidget extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleLarge!.copyWith(
                           fontSize: 18,
-                          color: Colors.grey,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -145,14 +149,36 @@ class MissionContainerWidget extends StatelessWidget {
                         "Solde actuel: ",
                         style: Theme.of(context).textTheme.bodyLarge,
                       ),
-                      Text(
-                        formattedCurrency.format(int.parse(capitale)),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                          // fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      Row(
+                        children: [
+                          Icon(
+                            double.parse(capitale) >=
+                                    double.parse(capitalInitial)
+                                ? CupertinoIcons.arrow_up
+                                : CupertinoIcons.arrow_down,
+                            color:
+                                double.parse(capitale) >=
+                                    double.parse(capitalInitial)
+                                ? Colors.green
+                                : Colors.red,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            formattedCurrency.format(int.parse(capitale)),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleLarge!
+                                .copyWith(
+                                  // fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color:
+                                      double.parse(capitale) >=
+                                          double.parse(capitalInitial)
+                                      ? Colors.green
+                                      : Colors.red,
+                                ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

@@ -203,11 +203,10 @@ class _MissionDetailState extends State<MissionDetail> {
                     // Mission name
                     Text(
                       currentMission.nom,
-                      style: Theme.of(context).textTheme.titleLarge!
-                          .copyWith(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w600,
-                          ),
+                      style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     // Mission date
@@ -373,7 +372,9 @@ class _MissionDetailState extends State<MissionDetail> {
                         splashColor: Theme.of(
                           context,
                         ).colorScheme.error.withValues(alpha: 0.15),
-                        color: Theme.of(context).colorScheme.onError,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.black.withValues(alpha: 0.5)
+                            : Colors.white,
                         elevation: 0,
                         height: 50,
                         minWidth: double.infinity,
@@ -496,7 +497,11 @@ class _MissionDetailState extends State<MissionDetail> {
                   padding: const WidgetStatePropertyAll(
                     EdgeInsets.only(left: 20),
                   ),
-                  backgroundColor: const WidgetStatePropertyAll(Colors.white),
+                  backgroundColor: WidgetStatePropertyAll(
+                    Theme.of(context).brightness == Brightness.dark
+                        ? Colors.black.withValues(alpha: 0.5)
+                        : Colors.white,
+                  ),
                   hintText: "Chercher une entrée ou dépense",
                   hintStyle: WidgetStatePropertyAll(
                     Theme.of(context).textTheme.bodyLarge,

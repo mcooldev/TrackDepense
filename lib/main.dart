@@ -12,6 +12,7 @@ import 'package:track_depenses/pages/splashOnboarding/on_boarding.dart';
 import 'package:track_depenses/pages/splashOnboarding/splash.dart';
 import 'package:track_depenses/providers/onboarding_provider.dart';
 import 'package:track_depenses/providers/reset_pwd_provider.dart';
+import 'package:track_depenses/providers/share_files_providers.dart';
 import 'package:track_depenses/providers/theme_provider.dart';
 import 'package:track_depenses/providers/transaction_provider.dart';
 import 'package:track_depenses/providers/user_provider.dart';
@@ -38,6 +39,7 @@ class TrackDepenses extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => TransactionProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => ShareFilesProvider())
       ],
       child: Consumer<ThemeProvider>(builder: (_, prov, _) {
         return MaterialApp(

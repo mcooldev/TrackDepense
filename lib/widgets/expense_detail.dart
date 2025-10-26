@@ -4,6 +4,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:screenshot/screenshot.dart';
+import 'package:track_depenses/providers/share_files_providers.dart';
+import 'package:track_depenses/widgets/expense_receipt.dart';
 
 import '../models/transaction_model.dart';
 import '../providers/transaction_provider.dart';
@@ -133,311 +136,384 @@ class _ExpenseDetailState extends State<ExpenseDetail> {
       }
     }
 
+    final shareProv = Provider.of<ShareFilesProvider>(context, listen: false);
+
     ///
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Détails de la dépense"),
-        centerTitle: false,
-        actionsPadding: const EdgeInsets.only(right: 8),
-        actions: [
-          IconButton(
-            onPressed: () {
-              // todo: share expense
-            },
-            icon: Icon(
-              CupertinoIcons.share,
-              color: Theme.of(context).colorScheme.primary,
-            ),
+
+    return Consumer<TransactionProvider>(
+      builder: (_, prov, _) {
+        ///
+
+        final currentMission = prov.findMissionById(
+          missionId: widget.mission.id,
+        );
+        //
+        final expense = prov.findDepenseById(widget.depense.id);
+        //
+        if (expense == null || currentMission == null) {
+          Navigator.of(context).pop();
+          return const SizedBox.shrink();
+        }
+
+        ///
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text("Détails de la dépense"),
+            centerTitle: false,
+            actionsPadding: const EdgeInsets.only(right: 8),
+            actions: [
+              IconButton(
+                onPressed: () async {
+                  // todo: share expense receipt as image
+                  await shareProv.shareAsImage(context);
+                },
+                icon: shareProv.isCapturing
+                    ? const CircularProgressIndicator.adaptive()
+                    : Icon(
+                        CupertinoIcons.share,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+              ),
+            ],
           ),
-        ],
-      ),
-
-      ///
-      body: Consumer<TransactionProvider>(
-        builder: (_, prov, _) {
-          ///
-
-          final currentMission = prov.findMissionById(missionId: widget.mission.id);
-          final expense = prov.findDepenseById(widget.depense.id);
-          if (expense == null || currentMission == null) {
-            Navigator.of(context).pop();
-            return const SizedBox.shrink();
-          }
 
           ///
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Description, date, montant, categorie
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  width: MediaQuery.sizeOf(context).width,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white.withValues(alpha: 0.1)
-                        : Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Description
-                      Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-                            Container(
-                              width: 50,
-                              height: 50,
-                              decoration: BoxDecoration(
-                                color:
-                                    Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? Colors.white.withValues(alpha: 0.15)
-                                    : Theme.of(context).colorScheme.primary
-                                          .withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(80),
-                              ),
-                              child: Icon(
-                                CupertinoIcons.arrow_down_circle,
-                                size: 32,
-                                color:
-                                    Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? Colors.white
-                                    : Theme.of(context).colorScheme.primary,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Flexible(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "Titre de la dépense",
-                                    softWrap: true,
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodyLarge,
-                                  ),
-                                  Text(
-                                    expense.description,
-                                    softWrap: true,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .headlineLarge!
-                                        .copyWith(
-                                          fontSize: 22,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      // Details
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white.withValues(alpha: 0.1)
-                              : Theme.of(context).colorScheme.surface,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Column(
-                          children: [
-                            // Date
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  "Date :",
-                                  style: Theme.of(context).textTheme.bodyLarge,
-                                ),
-                                Text(
-                                  "Le ${DateFormat("dd/MM/yyyy").format(expense.date)}",
-                                  style: Theme.of(context).textTheme.bodyLarge!
-                                      .copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        color:
-                                            Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? Colors.white
-                                            : Colors.black,
-                                      ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            // Montant
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  "Montant :",
-                                  style: Theme.of(context).textTheme.bodyLarge,
-                                ),
-                                Text(
-                                  "- ${currencyFormatter.format(expense.montant)}",
-                                  style: Theme.of(context).textTheme.bodyLarge!
-                                      .copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        color:
-                                            Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? Colors.white
-                                            : Theme.of(
-                                                context,
-                                              ).colorScheme.primary,
-                                      ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            // Categorie
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  "Catégorie :",
-                                  style: Theme.of(context).textTheme.bodyLarge,
-                                ),
-                                Text(
-                                  expense.categorie,
-                                  style: Theme.of(context).textTheme.bodyLarge!
-                                      .copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        color:
-                                            Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? Colors.white
-                                            : Theme.of(
-                                                context,
-                                              ).colorScheme.onSurface,
-                                      ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                // Titre du justificatif
-                Text(
-                  "Justificatif de la dépense",
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 12),
-                // Image justificative
-                Container(
-                  height: MediaQuery.sizeOf(context).height * 0.35,
-                  width: MediaQuery.sizeOf(context).width,
-                  clipBehavior: Clip.antiAlias,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white.withValues(alpha: 0.1)
-                        : Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(width: 1, color: Colors.grey.shade300)
-                  ),
-                  child:
-                      expense.justificatif == null || expense.justificatif == ""
-                      ? Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              CupertinoIcons.photo,
-                              size: 70,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withValues(alpha: 0.2),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              "Pas de justificatif ajouté",
-                              style: Theme.of(context).textTheme.bodyLarge,
-                            ),
-                          ],
-                        )
-                      : Image.file(
-                          File(expense.justificatif.toString()),
-                          fit: BoxFit.cover,
-                        ),
-                ),
-                const SizedBox(height: 24),
-                // Buttons
-                if(currentMission.isClosed == false)
-                Row(
+          body: Stack(
+            children: [
+              /// Normal content
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Expanded(
-                      child: MaterialButton(
-                        onPressed: () async {
-                          // todo: delete expense
-                          await deleteDepenseDialog(context, expense);
-                          //
-                        },
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(80),
-                        ),
-                        elevation: 0,
-                        height: 44,
+                    // Description, date, montant, categorie
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      width: MediaQuery.sizeOf(context).width,
+                      decoration: BoxDecoration(
                         color: Theme.of(context).brightness == Brightness.dark
                             ? Colors.white.withValues(alpha: 0.1)
                             : Colors.white,
-                        child: Text(
-                          "Supprimer",
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
-                          ),
-                        ),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: MaterialButton(
-                        onPressed: () {
-                          // todo: edit expense
-                          showBottomSheet(
-                            context,
-                            NewExpense(
-                              mission: currentMission,
-                              depenseToEdit: expense,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Description
+                          Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: 50,
+                                  height: 50,
+                                  decoration: BoxDecoration(
+                                    color:
+                                        Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.white.withValues(alpha: 0.15)
+                                        : Theme.of(context).colorScheme.primary
+                                              .withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(80),
+                                  ),
+                                  child: Icon(
+                                    CupertinoIcons.arrow_down_circle,
+                                    size: 32,
+                                    color:
+                                        Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.white
+                                        : Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Flexible(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        "Titre de la dépense",
+                                        softWrap: true,
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodyLarge,
+                                      ),
+                                      Text(
+                                        expense.description,
+                                        softWrap: true,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .headlineLarge!
+                                            .copyWith(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
-                            true,
-                          );
-                        },
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(80),
-                        ),
-                        elevation: 0,
-                        height: 44,
-                        color: Theme.of(context).colorScheme.primary,
-                        child: Text(
-                          "Modifier",
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onPrimary,
                           ),
-                        ),
+                          const SizedBox(height: 4),
+                          // Details
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color:
+                                  Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white.withValues(alpha: 0.1)
+                                  : Theme.of(context).colorScheme.surface,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Column(
+                              children: [
+                                // Date
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      "Date :",
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyLarge,
+                                    ),
+                                    Text(
+                                      "Le ${DateFormat("dd/MM/yyyy").format(expense.date)}",
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge!
+                                          .copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            color:
+                                                Theme.of(context).brightness ==
+                                                    Brightness.dark
+                                                ? Colors.white
+                                                : Colors.black,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                // Montant
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      "Montant :",
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyLarge,
+                                    ),
+                                    Text(
+                                      "- ${currencyFormatter.format(expense.montant)}",
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge!
+                                          .copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            color:
+                                                Theme.of(context).brightness ==
+                                                    Brightness.dark
+                                                ? Colors.white
+                                                : Theme.of(
+                                                    context,
+                                                  ).colorScheme.primary,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                // Categorie
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      "Catégorie :",
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyLarge,
+                                    ),
+                                    Text(
+                                      expense.categorie,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge!
+                                          .copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            color:
+                                                Theme.of(context).brightness ==
+                                                    Brightness.dark
+                                                ? Colors.white
+                                                : Theme.of(
+                                                    context,
+                                                  ).colorScheme.onSurface,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
+                    const SizedBox(height: 24),
+
+                    /// Image justificative
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Titre du justificatif
+                        Text(
+                          "Pièce justificative",
+                          style: Theme.of(context).textTheme.bodyLarge!
+                              .copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 8),
+                        // Image justificative
+                        Container(
+                          height: MediaQuery.sizeOf(context).height * 0.4,
+                          width: MediaQuery.sizeOf(context).width,
+                          clipBehavior: Clip.antiAlias,
+                          decoration: BoxDecoration(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white.withValues(alpha: 0.1)
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              width: 1.5,
+                              color:
+                                  Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white.withValues(alpha: 0.2)
+                                  : Colors.white,
+                            ),
+                          ),
+                          child:
+                              expense.justificatif == null ||
+                                  expense.justificatif == ""
+                              ? Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      CupertinoIcons.photo,
+                                      size: 70,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.2),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      "Pas de justificatif ajouté",
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyLarge,
+                                    ),
+                                  ],
+                                )
+                              : ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.file(
+                                    File(expense.justificatif.toString()),
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    // Buttons
+                    if (currentMission.isClosed == false)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: MaterialButton(
+                              onPressed: () async {
+                                // todo: delete expense
+                                await deleteDepenseDialog(context, expense);
+                                //
+                              },
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(80),
+                              ),
+                              elevation: 0,
+                              height: 44,
+                              color:
+                                  Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white.withValues(alpha: 0.1)
+                                  : Colors.white,
+                              child: Text(
+                                "Supprimer",
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: MaterialButton(
+                              onPressed: () {
+                                // todo: edit expense
+                                showBottomSheet(
+                                  context,
+                                  NewExpense(
+                                    mission: currentMission,
+                                    depenseToEdit: expense,
+                                  ),
+                                  true,
+                                );
+                              },
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(80),
+                              ),
+                              elevation: 0,
+                              height: 44,
+                              color: Theme.of(context).colorScheme.primary,
+                              child: Text(
+                                "Modifier",
+                                style: TextStyle(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onPrimary,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    else
+                      const SizedBox.shrink(),
                   ],
-                )
-                else const SizedBox.shrink(),
-              ],
-            ),
-          );
-        },
-      ),
+                ),
+              ),
+
+              /// Expense receipt
+              Positioned(
+                left: MediaQuery.of(context).size.width + 1000,
+                child: Screenshot(
+                  controller: shareProv.screenshotController,
+                  child: ExpenseReceipt(
+                    mission: currentMission,
+                    expense: expense,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
