@@ -23,7 +23,7 @@ class TransactionProvider with ChangeNotifier {
   /// Add item to the list
   void add<T>(T item) {
     if (item is Mission) {
-      _missions.insert(0, item);
+      _missions.add(item);
     } else if (item is Depense) {
       _depenses.add(item);
     } else if (item is Entree) {
@@ -197,6 +197,8 @@ class TransactionProvider with ChangeNotifier {
     montanEntreetController.clear();
     descriptionEntreeController.clear();
     montantDepenseController.clear();
+    amountGoalController.clear();
+    _isAmountGoalSet = false;
     descriptionDepenseController.clear();
     dateDebut = DateTime.now();
     dateFin = DateTime.now();
@@ -275,7 +277,8 @@ class TransactionProvider with ChangeNotifier {
   /// Clôturer une mission
   final List<Mission> _closedMissions = [];
 
-  List<Mission> get closedMissions => [..._closedMissions];
+  List<Mission> get closedMissions =>
+      [..._closedMissions]..sort((a, b) => b.dateFin.compareTo(a.dateFin));
 
   void closeMission(Mission mission) {
     final missionIndex = _missions.indexWhere((m) => m.id == mission.id);
@@ -303,7 +306,7 @@ class TransactionProvider with ChangeNotifier {
   List<Mission> _filteredOnGoingMission = [];
 
   List<Mission> get filteredOnGoingMission => _filteredOnGoingMission.isEmpty
-      ? [..._missions]
+      ? ([..._missions]..sort((a, b) => b.id.compareTo(a.id)))
       : [..._filteredOnGoingMission];
 
   List<dynamic> _filteredOp = [];
@@ -316,14 +319,13 @@ class TransactionProvider with ChangeNotifier {
 
   bool get isSearching => _isSearching;
 
-
   void filterOnGoingMissionByName(String query) {
     if (_debounce?.isActive ?? false) _debounce?.cancel();
     //
     _isSearching = true;
     notifyListeners();
     //
-    _debounce = Timer(const Duration(milliseconds: 350), (){
+    _debounce = Timer(const Duration(milliseconds: 350), () {
       if (query.isEmpty) {
         _filteredOnGoingMission = [];
       } else {
@@ -335,7 +337,6 @@ class TransactionProvider with ChangeNotifier {
       _isSearching = false;
       notifyListeners();
     });
-
   }
 
   void filterTxnByName(List<dynamic> list, String query) {
@@ -356,6 +357,26 @@ class TransactionProvider with ChangeNotifier {
       //
       notifyListeners();
     });
+  }
+
+  /// Set amount goal for mission
+  final amountGoalController = TextEditingController();
+  bool _isAmountGoalSet = false;
+
+  bool get isAmountGoalSet => _isAmountGoalSet;
+
+  void setAmountGoalSet(bool value) {
+    _isAmountGoalSet = value;
+    notifyListeners();
+  }
+
+  /// Percent indicator
+  double calculatePercent (double capitalAmount, double amountGoal) {
+    if (capitalAmount == 0 || amountGoal == 0) {
+      return 0.0;
+    }
+    double percent = (capitalAmount / amountGoal);
+    return percent.clamp(0.0, 1.0);
   }
 
   /// Disposer

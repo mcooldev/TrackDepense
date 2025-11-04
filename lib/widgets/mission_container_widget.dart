@@ -1,6 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:percent_indicator/circular_percent_indicator.dart';
+import 'package:provider/provider.dart';
+
+import '../providers/transaction_provider.dart';
 
 class MissionContainerWidget extends StatelessWidget {
   const MissionContainerWidget({
@@ -12,13 +16,15 @@ class MissionContainerWidget extends StatelessWidget {
     required this.capitalInitial,
     required this.missionIcon,
     required this.onTap,
+    required this.montantObjectif,
   });
 
   final String missionName;
   final String dateDebut;
   final String dateFin;
-  final String capitale;
-  final String capitalInitial;
+  final double capitale;
+  final double? montantObjectif;
+  final double capitalInitial;
   final String missionIcon;
   final void Function() onTap;
 
@@ -31,6 +37,14 @@ class MissionContainerWidget extends StatelessWidget {
       symbol: "F",
       decimalDigits: 0,
     );
+    //
+    final prov = Provider.of<TransactionProvider>(context, listen: false);
+
+    //
+    final calculatedPercent = montantObjectif == null
+        ? 0.0
+        : prov.calculatePercent(capitale, montantObjectif!);
+    final textPercent = "${(calculatedPercent * 100).toStringAsFixed(0)}%";
 
     ///
     return GestureDetector(
@@ -49,33 +63,12 @@ class MissionContainerWidget extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            /// Icon & Mission name
+            /// Mission name, date and mission amount goal
             Padding(
               padding: const EdgeInsets.all(12.0),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    height: 60,
-                    width: 60,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white.withValues(alpha: 0.1)
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(60),
-                      border: Border.all(
-                        width: 0.5,
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white.withValues(alpha: 0.1)
-                            : const Color(0xffdcdfe3),
-                      ),
-                    ),
-                    child: Text(
-                      missionIcon,
-                      style: Theme.of(context).textTheme.headlineMedium,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
                   Flexible(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,15 +83,68 @@ class MissionContainerWidget extends StatelessWidget {
                                 fontWeight: FontWeight.w600,
                               ),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 4),
 
                         /// Date de début et de fin
                         Text(
                           "Du ${formattedDate.format(DateTime.parse(dateDebut))} • Au ${formattedDate.format(DateTime.parse(dateFin))}",
-                          style: Theme.of(context).textTheme.bodyLarge,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyLarge!.copyWith(fontSize: 15),
+                        ),
+                        const SizedBox(height: 8),
+
+                        /// Mission amount goal
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.secondary,
+                            borderRadius: BorderRadius.circular(80),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                CupertinoIcons.rocket,
+                                size: 20,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSecondary,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                formattedCurrency.format(
+                                  montantObjectif ?? 0.0,
+                                ),
+                                style: Theme.of(context).textTheme.bodyMedium!
+                                    .copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSecondary,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
+                  ),
+                  // Circular percent indicator
+                  CircularPercentIndicator(
+                    radius: 40,
+                    lineWidth: 7,
+                    percent: calculatedPercent,
+                    center: Text(
+                      textPercent,
+                      style: const TextStyle(fontSize: 18),
+                    ),
+                    backgroundColor: Theme.of(context).colorScheme.surface,
+                    progressColor: Theme.of(context).colorScheme.primary,
+                    circularStrokeCap: CircularStrokeCap.round,
                   ),
                 ],
               ),
@@ -106,7 +152,7 @@ class MissionContainerWidget extends StatelessWidget {
 
             const SizedBox(height: 4),
 
-            /// Capitale actuel et initial
+            /// Capitale initial et solde actuel
             Container(
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
               decoration: BoxDecoration(
@@ -117,16 +163,16 @@ class MissionContainerWidget extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  /// Montant de la capitale actuelle
+                  /// Capitale actuelle
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        "Capitale de départ: ",
+                        "Capitale de départ : ",
                         style: Theme.of(context).textTheme.bodyLarge,
                       ),
                       Text(
-                        formattedCurrency.format(int.parse(capitalInitial)),
+                        formattedCurrency.format(capitalInitial),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleLarge!.copyWith(
@@ -141,39 +187,35 @@ class MissionContainerWidget extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
 
-                  /// Montant du capital actuel
+                  /// Solde actuel
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        "Solde actuel: ",
+                        "Solde actuel : ",
                         style: Theme.of(context).textTheme.bodyLarge,
                       ),
                       Row(
                         children: [
                           Icon(
-                            double.parse(capitale) >=
-                                    double.parse(capitalInitial)
+                            capitale >= capitalInitial
                                 ? CupertinoIcons.arrow_up
                                 : CupertinoIcons.arrow_down,
-                            color:
-                                double.parse(capitale) >=
-                                    double.parse(capitalInitial)
+                            color: capitale >= capitalInitial
                                 ? Colors.green
                                 : Colors.red,
+                            size: 20,
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            formattedCurrency.format(int.parse(capitale)),
+                            formattedCurrency.format(capitale),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: Theme.of(context).textTheme.titleLarge!
                                 .copyWith(
                                   // fontSize: 18,
                                   fontWeight: FontWeight.w600,
-                                  color:
-                                      double.parse(capitale) >=
-                                          double.parse(capitalInitial)
+                                  color: capitale >= capitalInitial
                                       ? Colors.green
                                       : Colors.red,
                                 ),

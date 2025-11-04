@@ -41,6 +41,7 @@ class _ExpenseDetailState extends State<ExpenseDetail> {
       showModalBottomSheet(
         isScrollControlled: isScroll,
         useSafeArea: true,
+        showDragHandle: true,
         context: context,
         builder: (context) {
           return child;

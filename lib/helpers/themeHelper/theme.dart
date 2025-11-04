@@ -15,21 +15,18 @@ class ThemeHelper {
     ),
     //
     textTheme: GoogleFonts.manropeTextTheme(
-      TextTheme(
-        bodyLarge: GoogleFonts.manrope(color: const Color(0xff697177)),
-        bodyMedium: GoogleFonts.manrope(color: const Color(0xff697177)),
+      const TextTheme(
+        bodyLarge: TextStyle(color: Color(0xff697177)),
+        bodyMedium: TextStyle(color: Color(0xff697177)),
       ),
     ),
     //
     bottomSheetTheme: const BottomSheetThemeData().copyWith(
-      showDragHandle: true,
-      dragHandleColor: const Color(0xffededed),
       backgroundColor: Colors.white,
+      clipBehavior: Clip.antiAlias,
       elevation: 0,
-      shape: ContinuousRectangleBorder(
-        borderRadius: BorderRadius.circular(40),
-      ),
-    )
+      shape: ContinuousRectangleBorder(borderRadius: BorderRadius.circular(40)),
+    ),
   );
 
   /// Theme for dark mode
@@ -50,15 +47,12 @@ class ThemeHelper {
         bodyMedium: TextStyle(color: Colors.white60),
       ),
     ),
-      //
-      bottomSheetTheme: const BottomSheetThemeData().copyWith(
-        showDragHandle: true,
-        dragHandleColor: const Color(0xff314048),
-        backgroundColor: const Color(0xff11181C),
-        elevation: 0,
-        shape: ContinuousRectangleBorder(
-          borderRadius: BorderRadius.circular(40),
-        ),
-      )
+    //
+    bottomSheetTheme: const BottomSheetThemeData().copyWith(
+      backgroundColor: const Color(0xff11181C),
+      clipBehavior: Clip.antiAlias,
+      elevation: 0,
+      shape: ContinuousRectangleBorder(borderRadius: BorderRadius.circular(40)),
+    ),
   );
 }

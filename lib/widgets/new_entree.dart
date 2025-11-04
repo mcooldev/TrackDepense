@@ -44,7 +44,9 @@ class _NewEntreeState extends State<NewEntree> {
               // Titre
               Text(
                 "Ajout de nouvel entrée",
-                style: Theme.of(context).textTheme.titleLarge,
+                style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                      fontWeight: FontWeight.w600,
+                ),
               ),
               const SizedBox(height: 24),
               // Montant de l'entrée

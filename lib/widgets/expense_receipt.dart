@@ -35,7 +35,7 @@ class ExpenseReceipt extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const SizedBox(height: 30),
+          const SizedBox(height: 40),
           // Titre du justificatif
           Flexible(
             child: Row(

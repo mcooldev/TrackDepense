@@ -223,6 +223,12 @@ class _ProfileState extends State<Profile> {
                             ),
                             trailing: Switch(
                               value: themeProv.isSwitched,
+                              //
+                              inactiveThumbColor: Colors.white,
+                              inactiveTrackColor: Colors.grey.shade400,
+                              //
+                              trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
+                              //
                               onChanged: (newValue) {
                                 // todo: theme preferences switch
                                 themeProv.toggleTheme();

@@ -46,6 +46,8 @@ class Mission {
     required this.dateDebut,
     required this.dateFin,
     this.isClosed = false,
+    this.isAmountGoal = false,
+    this.amountGoal,
     String? id,
   }) : id = id ?? uuid.v4();
   String id;
@@ -57,6 +59,8 @@ class Mission {
   DateTime dateDebut;
   DateTime dateFin;
   bool isClosed;
+  bool isAmountGoal;
+  double? amountGoal;
 
   /// Copy with mission
   Mission copyWith({
@@ -69,6 +73,8 @@ class Mission {
     DateTime? dateDebut,
     DateTime? dateFin,
     bool? isClosed,
+    bool? isAmountGoal,
+    double? amountGoal,
   }) {
     return Mission(
         id: id ?? this.id,
@@ -80,6 +86,8 @@ class Mission {
         dateDebut: dateDebut ?? this.dateDebut,
         dateFin: dateFin ?? this.dateFin,
         isClosed: isClosed ?? this.isClosed,
+        isAmountGoal: isAmountGoal ?? this.isAmountGoal,
+        amountGoal: amountGoal ?? this.amountGoal,
     );
   }
 }

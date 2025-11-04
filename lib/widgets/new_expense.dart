@@ -50,10 +50,14 @@ class _NewExpenseState extends State<NewExpense> {
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 50),
           child: Column(
             children: [
-              // Titre
+
+              /// Titre
+
               Text(
                 "Ajout de nouvelle dépense",
-                style: Theme.of(context).textTheme.titleLarge,
+                style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const SizedBox(height: 24),
               // catégorie de la depense

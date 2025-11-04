@@ -33,7 +33,9 @@ class _NewMissionState extends State<NewMission> {
               // Titre
               Text(
                 "Ajout de nouvelle mission",
-                style: Theme.of(context).textTheme.titleLarge,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge!.copyWith(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 24),
               // Nom de la mission
@@ -73,6 +75,87 @@ class _NewMissionState extends State<NewMission> {
                     return null;
                   }
                 },
+              ),
+              const SizedBox(height: 12),
+              // Montant objectif
+              Container(
+                width: MediaQuery.sizeOf(context).width,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: prov.isAmountGoalSet == false
+                      ? Theme.of(
+                          context,
+                        ).colorScheme.secondary.withValues(alpha: 0.1)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                  border: prov.isAmountGoalSet == false
+                      ? Border.all(color: Colors.transparent)
+                      : Border.all(
+                          width: 0.5,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.3),
+                        ),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "Définir un montant objectif",
+                          style: Theme.of(context).textTheme.bodyLarge!
+                              .copyWith(
+                                color: Theme.of(context).colorScheme.onSecondary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                        Switch(
+                          value: prov.isAmountGoalSet,
+                          inactiveThumbColor: Theme.of(
+                            context,
+                          ).colorScheme.secondary,
+                          inactiveTrackColor: Colors.white,
+                          //
+                          trackOutlineColor: const WidgetStatePropertyAll(
+                            Colors.transparent,
+                          ),
+                          //
+                          activeThumbColor: Theme.of(
+                            context,
+                          ).colorScheme.secondary,
+                          activeTrackColor: Theme.of(
+                            context,
+                          ).colorScheme.onSecondary,
+                          onChanged: prov.setAmountGoalSet,
+                        ),
+                      ],
+                    ),
+                    if (prov.isAmountGoalSet)
+                      Column(
+                        children: [
+                          const SizedBox(height: 8),
+                          TextFormFieldWidget(
+                            controller: prov.amountGoalController,
+                            hintText: "Montant objectif",
+                            iconData: CupertinoIcons.money_dollar,
+                            isPassword: false,
+                            validator: (val) {
+                              if (val == null || val.isEmpty) {
+                                return "Veuillez mettre un montant objectif";
+                              } else {
+                                return null;
+                              }
+                            },
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: false,
+                              signed: false,
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
               ),
               const SizedBox(height: 12),
               Row(
@@ -186,12 +269,28 @@ class _NewMissionState extends State<NewMission> {
                       ),
                     );
                     return;
+                  } else if (prov.isAmountGoalSet &&
+                      prov.amountGoalController.text.isEmpty) {
+                    Navigator.of(context).pop();
+                    //
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text(
+                          "Veuillez mettre un montant objectif",
+                        ),
+                        backgroundColor: Theme.of(context).colorScheme.error,
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                    return;
                   } else if (prov.dateFin.isBefore(prov.dateDebut)) {
                     Navigator.of(context).pop();
                     //
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: const Text("La date de début doit être avant la date de fin"),
+                        content: const Text(
+                          "La date de début doit être avant la date de fin",
+                        ),
                         backgroundColor: Theme.of(context).colorScheme.error,
                         behavior: SnackBarBehavior.floating,
                       ),
@@ -207,6 +306,10 @@ class _NewMissionState extends State<NewMission> {
                     capitale: double.parse(prov.capitaleController.text.trim()),
                     entrees: [],
                     depenses: [],
+                    isAmountGoal: prov.isAmountGoalSet,
+                    amountGoal: prov.isAmountGoalSet
+                        ? double.parse(prov.amountGoalController.text.trim())
+                        : 0.0,
                     dateDebut: prov.dateDebut,
                     dateFin: prov.dateFin,
                   );

@@ -25,6 +25,7 @@ class _HomeState extends State<Home> {
       //
       isScrollControlled: true,
       useSafeArea: true,
+      showDragHandle: true,
       //
       context: context,
       builder: (context) {
@@ -367,15 +368,14 @@ class _HomeState extends State<Home> {
                                               0,
                                               1,
                                             ),
+                                            montantObjectif: mission.amountGoal,
                                             missionName: mission.nom,
                                             dateDebut: mission.dateDebut
                                                 .toString(),
                                             dateFin: mission.dateFin.toString(),
-                                            capitale: mission.capitale
-                                                .toStringAsFixed(0),
-                                            capitalInitial: mission
-                                                .capitaleInitial
-                                                .toStringAsFixed(0),
+                                            capitale: mission.capitale,
+                                            capitalInitial:
+                                                mission.capitaleInitial,
                                           );
                                         },
                                       ),
@@ -476,15 +476,14 @@ class _HomeState extends State<Home> {
                                               0,
                                               1,
                                             ),
+                                            montantObjectif: mission.amountGoal,
                                             missionName: mission.nom,
                                             dateDebut: mission.dateDebut
                                                 .toString(),
                                             dateFin: mission.dateFin.toString(),
-                                            capitale: mission.capitale
-                                                .toStringAsFixed(0),
-                                            capitalInitial: mission
-                                                .capitaleInitial
-                                                .toStringAsFixed(0),
+                                            capitale: mission.capitale,
+                                            capitalInitial:
+                                                mission.capitaleInitial,
                                           );
                                         },
                                       ),
