@@ -1,7 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:track_depenses/providers/onboarding_provider.dart';
 
+import '../../helpers/pocketBaseHelper/pocketbase_db.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/text_form_field_widget.dart';
 
@@ -13,6 +15,10 @@ class Login extends StatefulWidget {
 }
 
 class _LoginState extends State<Login> {
+  ///
+  final pb = PocketBaseDb.instance;
+
+  ///
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
@@ -24,7 +30,9 @@ class _LoginState extends State<Login> {
               CircleAvatar(
                 radius: 14,
                 backgroundColor: Theme.of(context).colorScheme.surface,
-                backgroundImage: const AssetImage("assets/td_launcher_icon.png"),
+                backgroundImage: const AssetImage(
+                  "assets/td_launcher_icon.png",
+                ),
               ),
               const SizedBox(width: 12),
               Text(
@@ -34,8 +42,8 @@ class _LoginState extends State<Login> {
             ],
           ),
         ),
-        body: Consumer<LoginProvider>(
-          builder: (_, prov, _) {
+        body: Consumer2<LoginProvider, OnBoardingProvider>(
+          builder: (_, prov, obProv, _) {
             return SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(16.0, 24, 16.0, 50),
               child: Column(
@@ -62,7 +70,7 @@ class _LoginState extends State<Login> {
                   /// Google Sign in
                   MaterialButton(
                     onPressed: () async {
-                      await prov.loginWithGoogle(context);
+                      await pb.signWithGoogle(context);
                     },
                     splashColor: Theme.of(
                       context,
@@ -93,13 +101,7 @@ class _LoginState extends State<Login> {
                               const SizedBox(width: 12),
                               Text(
                                 "Se connecter avec Google",
-                                style: Theme.of(context).textTheme.titleMedium!
-                                    .copyWith(
-                                      fontSize: 17,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurface,
-                                    ),
+                                style: Theme.of(context).textTheme.bodyLarge,
                               ),
                             ],
                           ),
@@ -121,9 +123,7 @@ class _LoginState extends State<Login> {
                       const SizedBox(width: 8),
                       Text(
                         "Ou continuer avec",
-                        style: Theme.of(context).textTheme.titleSmall!.copyWith(
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
+                        style: Theme.of(context).textTheme.bodyLarge,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -221,7 +221,9 @@ class _LoginState extends State<Login> {
                         /// Login button
                         MaterialButton(
                           onPressed: () async {
-                            await prov.login(context);
+                            await prov.login(context).then((_){
+                              obProv.setFirstTimeComplete();
+                            });
                           },
                           splashColor: Theme.of(
                             context,

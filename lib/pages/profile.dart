@@ -1,8 +1,7 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:track_depenses/helpers/firebaseHelper/firebase_service.dart';
+import 'package:track_depenses/helpers/pocketBaseHelper/pocketbase_db.dart';
 
 import '../providers/theme_provider.dart';
 import '../providers/user_provider.dart';
@@ -19,7 +18,8 @@ class _ProfileState extends State<Profile> {
   @override
   Widget build(BuildContext context) {
     ///
-    final currentUser = FirebaseAuth.instance.currentUser;
+    final pb = PocketBaseDb.instance.pb;
+    final currentUser = pb.authStore.record;
     final themeProv = Provider.of<ThemeProvider>(context, listen: false);
 
     ///
@@ -36,15 +36,22 @@ class _ProfileState extends State<Profile> {
                 padding: const EdgeInsets.symmetric(horizontal: 6),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(90),
+                  border: Border.all(
+                    width: 1,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white.withValues(alpha: 0.2)
+                        : Colors.grey.shade200,
+                  ),
                   color: Theme.of(context).brightness == Brightness.dark
                       ? Colors.white.withValues(alpha: 0.1)
                       : Colors.white,
                 ),
                 child: TextButton(
                   onPressed: () async {
-                    prov.resetNameAndIndex();
+                    prov.resetIndex();
                     //
-                    await Authentication.instance.signOut();
+                    PocketBaseDb.instance.pb.authStore.clear();
+                    //
                     if (!context.mounted) return;
                     Navigator.pushReplacementNamed(context, "/authGate");
                   },
@@ -69,67 +76,23 @@ class _ProfileState extends State<Profile> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Stack(
-                      children: [
-                        // Profile picture
-                        CircleAvatar(
-                          radius: 50,
-                          backgroundImage: prov.image != null
-                              ? FileImage(prov.image!)
-                              : null,
-                          backgroundColor: Theme.of(
-                            context,
-                          ).colorScheme.onSurface,
-                          child: prov.image == null
-                              ? Icon(
-                                  CupertinoIcons.person,
-                                  size: 32,
-                                  color:
-                                      Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? Colors.black
-                                      : Colors.white,
-                                )
-                              : null,
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: GestureDetector(
-                            onTap: () {
-                              prov.pickImage();
-                            },
-                            child: Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(90),
-                                border: Border.all(
-                                  width: 2,
-                                  color: Theme.of(context).colorScheme.surface,
-                                ),
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                              child: Icon(
-                                CupertinoIcons.camera,
-                                size: 16,
-                                color: Theme.of(context).colorScheme.onPrimary,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                    const CircleAvatar(
+                      radius: 50,
+                      backgroundImage: AssetImage(
+                        "assets/td_launcher_icon.png",
+                      ),
                     ),
                     const SizedBox(height: 16),
                     // User name
                     Text(
-                      prov.userName,
+                      currentUser?.getStringValue("name") ?? "Inconnu",
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 4),
                     // User email
                     Text(
-                      currentUser?.email ?? "Inconnu",
+                      currentUser?.getStringValue('email') ??
+                          "inconnu@exemple.com",
                       style: Theme.of(
                         context,
                       ).textTheme.titleMedium!.copyWith(color: Colors.grey),
@@ -145,13 +108,23 @@ class _ProfileState extends State<Profile> {
                             ? Colors.white.withValues(alpha: 0.1)
                             : Colors.white,
                         borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          width: 1,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white.withValues(alpha: 0.2)
+                              : Colors.grey.shade200,
+                        ),
                       ),
                       child: Column(
                         children: [
                           // Reset password
                           ListTile(
-                            onTap: () {
-                              // todo: reset password
+                            onTap: () async {
+                              await PocketBaseDb.instance.resetPassword(context).then((_){
+                                if (!context.mounted) return;
+                                Navigator.pushNamed(context, "/resetPassword");
+                              });
+                              //
                             },
                             leading: Icon(
                               CupertinoIcons.lock,
@@ -227,7 +200,9 @@ class _ProfileState extends State<Profile> {
                               inactiveThumbColor: Colors.white,
                               inactiveTrackColor: Colors.grey.shade400,
                               //
-                              trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
+                              trackOutlineColor: const WidgetStatePropertyAll(
+                                Colors.transparent,
+                              ),
                               //
                               onChanged: (newValue) {
                                 // todo: theme preferences switch

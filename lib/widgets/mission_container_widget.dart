@@ -47,7 +47,7 @@ class MissionContainerWidget extends StatelessWidget {
     final textPercent = "${(calculatedPercent * 100).toStringAsFixed(0)}%";
 
     ///
-    return GestureDetector(
+    return InkWell(
       onTap: onTap,
       child: Container(
         width: MediaQuery.sizeOf(context).width,
@@ -56,8 +56,14 @@ class MissionContainerWidget extends StatelessWidget {
         decoration: BoxDecoration(
           color: Theme.of(context).brightness == Brightness.dark
               ? Colors.white.withValues(alpha: 0.1)
-              : Colors.white,
+              : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(8),
+          // border: Border.all(
+          //   color: Theme.of(context).brightness == Brightness.dark
+          //       ? Colors.white.withValues(alpha: 0.1)
+          //       : Colors.grey.shade200,
+          //   width: 1,
+          // ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -96,9 +102,8 @@ class MissionContainerWidget extends StatelessWidget {
 
                         /// Mission amount goal
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
+                          padding: const EdgeInsets.fromLTRB(
+                            8, 6, 12, 6,
                           ),
                           decoration: BoxDecoration(
                             color: Theme.of(context).colorScheme.secondary,
@@ -142,7 +147,7 @@ class MissionContainerWidget extends StatelessWidget {
                       textPercent,
                       style: const TextStyle(fontSize: 18),
                     ),
-                    backgroundColor: Theme.of(context).colorScheme.surface,
+                    backgroundColor: Colors.white,
                     progressColor: Theme.of(context).colorScheme.primary,
                     circularStrokeCap: CircularStrokeCap.round,
                   ),
@@ -213,7 +218,7 @@ class MissionContainerWidget extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: Theme.of(context).textTheme.titleLarge!
                                 .copyWith(
-                                  // fontSize: 18,
+                                  fontSize: 18,
                                   fontWeight: FontWeight.w600,
                                   color: capitale >= capitalInitial
                                       ? Colors.green

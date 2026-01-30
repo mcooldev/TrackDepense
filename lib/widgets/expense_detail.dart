@@ -27,6 +27,13 @@ class ExpenseDetail extends StatefulWidget {
 }
 
 class _ExpenseDetailState extends State<ExpenseDetail> {
+  ///
+  final db = '';
+  final userId = '';
+
+  // todo: set database and user id
+
+  ///
   @override
   Widget build(BuildContext context) {
     ///
@@ -144,17 +151,8 @@ class _ExpenseDetailState extends State<ExpenseDetail> {
     return Consumer<TransactionProvider>(
       builder: (_, prov, _) {
         ///
-
-        final currentMission = prov.findMissionById(
-          missionId: widget.mission.id,
-        );
-        //
-        final expense = prov.findDepenseById(widget.depense.id);
-        //
-        if (expense == null || currentMission == null) {
-          Navigator.of(context).pop();
-          return const SizedBox.shrink();
-        }
+        final currentMission = widget.mission;
+        final expense = widget.depense;
 
         ///
         return Scaffold(
@@ -270,6 +268,10 @@ class _ExpenseDetailState extends State<ExpenseDetail> {
                                   ? Colors.white.withValues(alpha: 0.1)
                                   : Theme.of(context).colorScheme.surface,
                               borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                width: 1,
+                                color: Colors.grey.shade200,
+                              ),
                             ),
                             child: Column(
                               children: [
@@ -388,7 +390,7 @@ class _ExpenseDetailState extends State<ExpenseDetail> {
                             color:
                                 Theme.of(context).brightness == Brightness.dark
                                 ? Colors.white.withValues(alpha: 0.1)
-                                : Colors.white,
+                                : Colors.grey.shade100,
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
                               width: 1.5,
@@ -400,13 +402,13 @@ class _ExpenseDetailState extends State<ExpenseDetail> {
                             ),
                           ),
                           child:
-                              expense.justificatif == null ||
-                                  expense.justificatif == ""
+                              (expense.justificatif == null ||
+                                  expense.justificatif!.isEmpty)
                               ? Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Icon(
-                                      CupertinoIcons.photo,
+                                      CupertinoIcons.photo_fill,
                                       size: 70,
                                       color: Theme.of(context)
                                           .colorScheme
@@ -425,7 +427,7 @@ class _ExpenseDetailState extends State<ExpenseDetail> {
                               : ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
                                   child: Image.file(
-                                    File(expense.justificatif.toString()),
+                                    File(expense.justificatif!.toString()),
                                     fit: BoxFit.contain,
                                   ),
                                 ),
@@ -446,6 +448,7 @@ class _ExpenseDetailState extends State<ExpenseDetail> {
                               },
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(80),
+                                side: BorderSide(color: Colors.grey.shade200),
                               ),
                               elevation: 0,
                               height: 44,

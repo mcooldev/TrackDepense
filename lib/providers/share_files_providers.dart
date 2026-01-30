@@ -82,15 +82,15 @@ class ShareFilesProvider with ChangeNotifier {
     return data.buffer.asUint8List();
   }
 
-
   Future<Uint8List> generatePdf(
     BuildContext context,
     Mission mission,
     List<dynamic> transactions,
   ) async {
     final pdf = pw.Document(title: "Rapport de la mission : ${mission.nom}");
+
     ///
-    final  logoBytes = await loadAsset("assets/td_launcher_icon.png");
+    final logoBytes = await loadAsset("assets/td_launcher_icon.png");
     //
     final fontRegularByte = await loadAsset("assets/fonts/Manrope-Regular.ttf");
     final fontBoldByte = await loadAsset("assets/fonts/Manrope-Bold.ttf");
@@ -115,7 +115,6 @@ class ShareFilesProvider with ChangeNotifier {
       bold: fontBold,
     );
 
-
     ///
     pdf.addPage(
       pw.Page(
@@ -123,12 +122,15 @@ class ShareFilesProvider with ChangeNotifier {
         theme: theme,
         build: (pw.Context context) {
           // Calculate totals
-          final totalEntrees = transactions
-              .whereType<Entree>()
-              .fold<double>(0, (sum, item) => sum + item.montant);
-          final totalDepenses = transactions
-              .whereType<Depense>()
-              .fold<double>(0, (sum, item) => sum + item.montant);
+          final totalEntrees = transactions.whereType<Entree>().fold<double>(
+            0,
+            (sum, item) => sum + item.montant,
+          );
+          final totalDepenses = transactions.whereType<Depense>().fold<double>(
+            0,
+            (sum, item) => sum + item.montant,
+          );
+
           ///
           return pw.Column(
             children: [
@@ -147,7 +149,7 @@ class ShareFilesProvider with ChangeNotifier {
                         fit: pw.BoxFit.scaleDown,
                         alignment: pw.Alignment.topLeft,
                         height: 50,
-                      )
+                      ),
                     ),
                   ),
                   pw.SizedBox(width: 12),
@@ -163,62 +165,94 @@ class ShareFilesProvider with ChangeNotifier {
               pw.SizedBox(height: 24),
               // Total Entrées / Dépenses / Capital initial et restant / Montant objectif
               pw.Container(
-                  padding: const pw.EdgeInsets.all(12),
-                  decoration: pw.BoxDecoration(
-                      color: PdfColors.grey100,
-                      borderRadius: pw.BorderRadius.circular(6)
-                  ),
-                  child: pw.Column(
+                padding: const pw.EdgeInsets.all(12),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.grey100,
+                  borderRadius: pw.BorderRadius.circular(6),
+                ),
+                child: pw.Column(
+                  children: [
+                    // Capital initial
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
-                        // Capital initial
-                        pw.Row(
-                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                          children: [
-                            pw.Expanded(child: pw.Text("Capital initial")),
-                            pw.Text(currencyFormater.format(mission.capitaleInitial)),
-                          ],
+                        pw.Expanded(child: pw.Text("Capital initial")),
+                        pw.Text(
+                          currencyFormater.format(mission.capitaleInitial),
+                          style: pw.TextStyle(
+                            fontSize: 15,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
                         ),
-                        pw.SizedBox(height: 10),
-                        // Capital restant
-                        pw.Row(
-                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                          children: [
-                            pw.Expanded(child: pw.Text("Capital restant")),
-                            pw.Text(currencyFormater.format(mission.capitale)),
-                          ],
+                      ],
+                    ),
+                    pw.SizedBox(height: 10),
+                    // Capital restant
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Expanded(child: pw.Text("Capital restant")),
+                        pw.Text(
+                          currencyFormater.format(mission.capitale),
+                          style: pw.TextStyle(
+                            fontSize: 15,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
                         ),
-                        pw.SizedBox(height: 10),
-                        // Montant objectif (si oui mettre le montant si non -N/A-)
-                        pw.Row(
-                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                          children: [
-                            pw.Expanded(child: pw.Text("Montant objectif")),
-                            if(mission.isAmountGoal)
-                              pw.Text(currencyFormater.format(mission.amountGoal))
-                            else
-                              pw.Text("-N/A-"),
-                          ],
+                      ],
+                    ),
+                    pw.SizedBox(height: 10),
+                    // Montant objectif (si oui mettre le montant si non -N/A-)
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Expanded(child: pw.Text("Montant objectif")),
+                        if (mission.isAmountGoal)
+                          pw.Text(
+                            currencyFormater.format(mission.amountGoal),
+                            style: pw.TextStyle(
+                              fontSize: 15,
+                              fontWeight: pw.FontWeight.bold,
+                            ),
+                          )
+                        else
+                          pw.Text("-N/A-"),
+                      ],
+                    ),
+                    pw.SizedBox(height: 10),
+                    // Total Entrées
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Expanded(child: pw.Text("Total Entrées")),
+                        pw.Text(
+                          currencyFormater.format(totalEntrees),
+                          style: pw.TextStyle(
+                            fontSize: 15,
+                            fontWeight: pw.FontWeight.bold,
+                            color: PdfColors.green,
+                          ),
                         ),
-                        pw.SizedBox(height: 10),
-                        // Total Entrées
-                        pw.Row(
-                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                          children: [
-                            pw.Expanded(child: pw.Text("Total Entrées")),
-                            pw.Text(currencyFormater.format(totalEntrees)),
-                          ],
+                      ],
+                    ),
+                    pw.SizedBox(height: 10),
+                    // Total Dépenses
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Expanded(child: pw.Text("Total Dépenses")),
+                        pw.Text(
+                          currencyFormater.format(totalDepenses),
+                          style: pw.TextStyle(
+                            fontSize: 15,
+                            fontWeight: pw.FontWeight.bold,
+                            color: PdfColors.red,
+                          ),
                         ),
-                        pw.SizedBox(height: 10),
-                        // Total Dépenses
-                        pw.Row(
-                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                          children: [
-                            pw.Expanded(child: pw.Text("Total Dépenses")),
-                            pw.Text(currencyFormater.format(totalDepenses)),
-                          ],
-                        ),
-                      ]
-                  )
+                      ],
+                    ),
+                  ],
+                ),
               ),
               // Divider
               pw.SizedBox(height: 24),
@@ -271,7 +305,18 @@ class ShareFilesProvider with ChangeNotifier {
                           // Date de la transaction
                           pw.Expanded(child: pw.Text(dateFormated)),
                           // Montant de la transaction
-                          pw.Expanded(child: pw.Text(montant)),
+                          pw.Expanded(
+                            child: pw.Text(
+                              montant,
+                              style: pw.TextStyle(
+                                fontSize: 15,
+                                fontWeight: pw.FontWeight.bold,
+                                color: transaction is Entree
+                                    ? PdfColors.green
+                                    : PdfColors.red,
+                              ),
+                            ),
+                          ),
                           //
                         ],
                       ),

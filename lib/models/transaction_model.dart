@@ -45,6 +45,7 @@ class Mission {
     required this.depenses,
     required this.dateDebut,
     required this.dateFin,
+    this.createdAt,
     this.isClosed = false,
     this.isAmountGoal = false,
     this.amountGoal,
@@ -61,6 +62,34 @@ class Mission {
   bool isClosed;
   bool isAmountGoal;
   double? amountGoal;
+  DateTime? createdAt;
+
+  /// Mission toMap
+  Map<String, dynamic> toMap() => {
+    "nom": nom,
+    "capitaleInitial": capitaleInitial,
+    "capitale": capitale,
+    "entrees": entrees.map((e) => e.toMap()).toList(),
+    "depenses": depenses.map((e) => e.toMap()).toList(),
+    "dateDebut": dateDebut,
+    "dateFin": dateFin,
+    "isClosed": isClosed,
+    "isAmountGoal": isAmountGoal,
+    "amountGoal": amountGoal,
+  };
+
+  /// toMap without entrees and depenses
+  Map<String, dynamic> toMapWithoutList() => {
+    "nom": nom,
+    "capitaleInitial": capitaleInitial,
+    "capitale": capitale,
+    "dateDebut": dateDebut,
+    "dateFin": dateFin,
+    "isClosed": isClosed,
+    "isAmountGoal": isAmountGoal,
+    "amountGoal": amountGoal,
+    "createdAt": createdAt,
+  };
 
   /// Copy with mission
   Mission copyWith({
@@ -71,23 +100,25 @@ class Mission {
     List<Entree>? entrees,
     List<Depense>? depenses,
     DateTime? dateDebut,
+    DateTime? createdAt,
     DateTime? dateFin,
     bool? isClosed,
     bool? isAmountGoal,
     double? amountGoal,
   }) {
     return Mission(
-        id: id ?? this.id,
-        nom: nom ?? this.nom,
-        capitaleInitial: capitaleInitial ?? this.capitaleInitial,
-        capitale: capitale ?? this.capitale,
-        entrees: entrees ?? this.entrees,
-        depenses: depenses ?? this.depenses,
-        dateDebut: dateDebut ?? this.dateDebut,
-        dateFin: dateFin ?? this.dateFin,
-        isClosed: isClosed ?? this.isClosed,
-        isAmountGoal: isAmountGoal ?? this.isAmountGoal,
-        amountGoal: amountGoal ?? this.amountGoal,
+      id: id ?? this.id,
+      nom: nom ?? this.nom,
+      capitaleInitial: capitaleInitial ?? this.capitaleInitial,
+      capitale: capitale ?? this.capitale,
+      entrees: entrees ?? this.entrees,
+      depenses: depenses ?? this.depenses,
+      dateDebut: dateDebut ?? this.dateDebut,
+      createdAt: createdAt ?? this.createdAt,
+      dateFin: dateFin ?? this.dateFin,
+      isClosed: isClosed ?? this.isClosed,
+      isAmountGoal: isAmountGoal ?? this.isAmountGoal,
+      amountGoal: amountGoal ?? this.amountGoal,
     );
   }
 }
@@ -104,6 +135,22 @@ class Entree {
   double montant;
   String description;
   DateTime date;
+
+  /// Entree toMap
+  Map<String, dynamic> toMap() => {
+    "montant": montant,
+    "description": description,
+    "date": date,
+  };
+
+  /// Entree fromMap
+  factory Entree.fromMap(Map<String, dynamic> map) => Entree(
+    montant: (map['montant'] ?? 0.0) as double,
+    description: map['description'] as String,
+    date: map['date'] != null ? map['date'] as DateTime : DateTime.now(),
+  );
+
+
 }
 
 /// Depense model
@@ -122,4 +169,21 @@ class Depense {
   String description;
   DateTime date;
   String? justificatif;
+
+  /// Depense toMap
+  Map<String, dynamic> toMap() => {
+    "montant": montant,
+    "categorie": categorie,
+    "description": description,
+    "date": date,
+    "justificatif": justificatif,
+  };
+
+  /// Depense fromMap
+  factory Depense.fromMap(Map<String, dynamic> map) => Depense(
+    montant: (map['montant'] ?? 0.0) as double,
+    categorie: map['categorie'] as String,
+    description: map['description'] as String,
+    date: map['date'] != null ? map['date'] as DateTime : DateTime.now(),
+  );
 }

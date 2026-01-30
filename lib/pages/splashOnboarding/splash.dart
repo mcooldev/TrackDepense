@@ -1,4 +1,5 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -21,29 +22,26 @@ class _SplashState extends State<Splash> {
 
   //
   Future<void> _checkIsFirstTime(BuildContext context) async {
-    final user = FirebaseAuth.instance.currentUser;
+    final onBoardingProvider = Provider.of<OnBoardingProvider>(
+      context,
+      listen: false,
+    );
+    //
     try {
-      final onBoardingProvider = Provider.of<OnBoardingProvider>(
-        context,
-        listen: false,
-      );
-      //
       await onBoardingProvider.checkIsFirstTime();
       //
-      await Future.delayed(const Duration(seconds: 3), () {
-        if (onBoardingProvider.isFirstTime) {
-          if (!context.mounted) return;
-          Navigator.pushReplacementNamed(context, "/onboarding");
-        } else if (user != null) {
-          if (!context.mounted) return;
-          Navigator.pushReplacementNamed(context, "/authGate");
-        } else {
-          if (!context.mounted) return;
-          Navigator.pushReplacementNamed(context, "/login");
-        }
-      });
+      await Future.delayed(const Duration(seconds: 3));
+      //
+      if (!context.mounted) return;
+      if (onBoardingProvider.isFirstTime) {
+        Navigator.pushReplacementNamed(context, "/loginSignup");
+        return;
+      }
+      //
+      Navigator.pushReplacementNamed(context, "/authGate");
+      //
     } catch (e) {
-      throw Exception(e);
+      log(e.toString());
     }
   }
 

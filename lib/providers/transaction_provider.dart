@@ -20,6 +20,23 @@ class TransactionProvider with ChangeNotifier {
 
   List<Entree> get entrees => [..._entrees];
 
+  void fetchMissions() {
+  }
+
+  void fetchEntree(String missionId) {
+  }
+
+  void fetchDepense(String missionId) {
+    //
+  }
+
+  Stream<List<dynamic>> allTxn = Stream.value([]);
+
+  Stream<List<dynamic>> fetchAllTxn(String missionId) {
+    return Stream.value([]);
+
+  }
+
   /// Add item to the list
   void add<T>(T item) {
     if (item is Mission) {
@@ -309,6 +326,16 @@ class TransactionProvider with ChangeNotifier {
       ? ([..._missions]..sort((a, b) => b.id.compareTo(a.id)))
       : [..._filteredOnGoingMission];
 
+  set filteredOnGoingMission(List<Mission> value) {
+    _filteredOnGoingMission = value;
+    notifyListeners();
+  }
+
+  void clearSearchField() {
+    _searchMissionController.text = "";
+    notifyListeners();
+  }
+
   List<dynamic> _filteredOp = [];
 
   List<dynamic> get filteredOp => _filteredOp;
@@ -326,13 +353,8 @@ class TransactionProvider with ChangeNotifier {
     notifyListeners();
     //
     _debounce = Timer(const Duration(milliseconds: 350), () {
-      if (query.isEmpty) {
-        _filteredOnGoingMission = [];
-      } else {
-        _filteredOnGoingMission = _missions.where((mission) {
-          return mission.nom.toLowerCase().contains(query.toLowerCase());
-        }).toList();
-      }
+      _searchMissionController.text = query;
+      notifyListeners();
       //
       _isSearching = false;
       notifyListeners();
@@ -371,7 +393,7 @@ class TransactionProvider with ChangeNotifier {
   }
 
   /// Percent indicator
-  double calculatePercent (double capitalAmount, double amountGoal) {
+  double calculatePercent(double capitalAmount, double amountGoal) {
     if (capitalAmount == 0 || amountGoal == 0) {
       return 0.0;
     }

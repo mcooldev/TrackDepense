@@ -1,16 +1,22 @@
-import 'package:uuid/uuid.dart';
-
-const uuid = Uuid();
-
 class UserModel {
   UserModel({
+    this.emailVisibility = true,
     required this.email,
     required this.password,
+    this.passwordConfirm,
     this.name,
-    String? id,
-  }) : id = uuid.v4();
-  final String id;
+  });
+
   final String email;
   final String password;
-  final String? name;
+  final bool? emailVisibility;
+  final String? name, passwordConfirm;
+
+  Map<String, dynamic> toMap() => {
+    "email": email,
+    "emailVisibility": emailVisibility,
+    "name": name,
+    "password": password,
+    "passwordConfirm": passwordConfirm,
+  };
 }

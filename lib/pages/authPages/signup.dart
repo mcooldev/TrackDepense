@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:track_depenses/helpers/pocketBaseHelper/pocketbase_db.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../widgets/text_form_field_widget.dart';
@@ -13,6 +14,10 @@ class Signup extends StatefulWidget {
 }
 
 class _SignupState extends State<Signup> {
+  ///
+  final pb = PocketBaseDb.instance;
+
+  ///
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
@@ -62,7 +67,7 @@ class _SignupState extends State<Signup> {
                   /// Google Sign up
                   MaterialButton(
                     onPressed: () async {
-                      await prov.signupWithGoogle(context);
+                      await pb.signWithGoogle(context);
                     },
                     splashColor: Theme.of(
                       context,
@@ -93,13 +98,7 @@ class _SignupState extends State<Signup> {
                               const SizedBox(width: 12),
                               Text(
                                 "S'inscrire avec Google",
-                                style: Theme.of(context).textTheme.titleMedium!
-                                    .copyWith(
-                                      fontSize: 17,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurface,
-                                    ),
+                                style: Theme.of(context).textTheme.bodyLarge,
                               ),
                             ],
                           ),
@@ -121,9 +120,7 @@ class _SignupState extends State<Signup> {
                       const SizedBox(width: 8),
                       Text(
                         "Ou continuer avec",
-                        style: Theme.of(context).textTheme.titleSmall!.copyWith(
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
+                        style: Theme.of(context).textTheme.bodyLarge,
                       ),
                       const SizedBox(width: 8),
                       Expanded(

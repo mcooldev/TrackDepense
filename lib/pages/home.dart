@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
+import 'package:track_depenses/helpers/pocketBaseHelper/pocketbase_db.dart';
 import 'package:track_depenses/pages/mission_detail.dart';
 import 'package:track_depenses/pages/profile.dart';
 import 'package:track_depenses/widgets/new_mission.dart';
@@ -40,12 +41,11 @@ class _HomeState extends State<Home> {
   Widget build(BuildContext context) {
     ///
     final trans = Provider.of<TransactionProvider>(context);
-
+    final currentUser = PocketBaseDb.instance.pb.authStore.record;
     ///
     return Consumer<UserProvider>(
       builder: (_, prov, _) {
         ///
-        final filteredOnGoingMissions = trans.filteredOnGoingMission;
 
         ///
         return DefaultTabController(
@@ -62,30 +62,9 @@ class _HomeState extends State<Home> {
                       prov.navigateWithFade(context, const Profile());
                       prov.selectedIndex = 1;
                     },
-                    child: CircleAvatar(
-                      radius: 24,
-                      backgroundColor:
-                          Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white.withValues(alpha: 0.1)
-                          : Colors.white,
-                      backgroundImage: prov.image != null
-                          ? FileImage(prov.image!)
-                          : null,
-                      child: prov.image != null
-                          ? null
-                          : Text(
-                              prov.userName.isNotEmpty
-                                  ? prov.userName.characters.first
-                                  : "?",
-                              style: TextStyle(
-                                color:
-                                    Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? Colors.white
-                                    : Colors.black,
-                                fontSize: 20,
-                              ),
-                            ),
+                    child: const CircleAvatar(
+                      radius: 22,
+                      backgroundImage: AssetImage("assets/td_launcher_icon.png"),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -97,9 +76,7 @@ class _HomeState extends State<Home> {
                         style: Theme.of(context).textTheme.bodyLarge,
                       ),
                       Text(
-                        prov.userName.isNotEmpty
-                            ? prov.userName.split(" ")[0]
-                            : "Inconnu",
+                        currentUser?.getStringValue("name").split(' ').first ?? "Inconnu",
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleLarge!.copyWith(
@@ -122,6 +99,12 @@ class _HomeState extends State<Home> {
                     height: 44,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(90),
+                      border: Border.all(
+                        width: 1,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white.withValues(alpha: 0.2)
+                            : Colors.grey.shade200
+                      ),
                       color: Theme.of(context).brightness == Brightness.dark
                           ? Colors.white.withValues(alpha: 0.1)
                           : Colors.white,
@@ -164,11 +147,7 @@ class _HomeState extends State<Home> {
                       padding: const EdgeInsets.all(16.0),
                       child: SearchBar(
                         controller: trans.searchMissionController,
-                        onChanged: (query) {
-                          trans.filterOnGoingMissionByName(
-                            trans.searchMissionController.text,
-                          );
-                        },
+                        onChanged: trans.filterOnGoingMissionByName,
                         elevation: const WidgetStatePropertyAll(0),
                         onTapOutside: (pointer) {
                           FocusManager.instance.primaryFocus?.unfocus();
@@ -183,8 +162,22 @@ class _HomeState extends State<Home> {
                         backgroundColor: WidgetStatePropertyAll(
                           Theme.of(context).brightness == Brightness.dark
                               ? Colors.black.withValues(alpha: 0.5)
-                              : Colors.white,
+                              : Colors.grey.shade100,
                         ),
+                        trailing: [
+                          IconButton(
+                            onPressed: () {
+                              trans.clearSearchField();
+                            },
+                            icon: Icon(
+                              CupertinoIcons.multiply,
+                              color: Colors.grey.shade300,
+                            ),
+                            splashColor: Theme.of(
+                              context,
+                            ).colorScheme.primary.withValues(alpha: 0.15),
+                          ),
+                        ],
                         hintText: "Chercher une mission en cours",
                         hintStyle: WidgetStatePropertyAll(
                           Theme.of(context).textTheme.bodyLarge,
@@ -222,165 +215,100 @@ class _HomeState extends State<Home> {
                       child: TabBarView(
                         children: [
                           /// Missions en cours
-                          SingleChildScrollView(
-                            padding: const EdgeInsets.fromLTRB(
-                              16.0,
-                              24,
-                              16.0,
-                              50,
-                            ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                /// Missions headline
-                                Text(
-                                  trans.isSearching == true
-                                      ? "Recherche en cours..."
-                                      : "Mes missions en cours",
-                                  style: Theme.of(context).textTheme.titleLarge,
-                                ),
-                                const SizedBox(height: 16),
+                          StreamBuilder(
+                            stream: null,
+                            builder: (ctx, snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return const Center(
+                                  child: CircularProgressIndicator.adaptive(),
+                                );
+                              }
+                              //
+                              if (snapshot.hasError) {
+                                return const Center(
+                                  child: Text(
+                                    "Erreur de chargement ou accès refusé",
+                                  ),
+                                );
+                              }
+                              // todo: set filtered mission list
 
-                                /// Missions container
-                                trans.missions.isEmpty
-                                    ? Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                        ),
-                                        width: double.infinity,
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                          color: Colors.transparent,
-                                        ),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                          children: [
-                                            SizedBox(
-                                              width:
-                                                  MediaQuery.sizeOf(
-                                                    context,
-                                                  ).width *
-                                                  0.3,
-                                              height: 250,
-                                              child: SvgPicture.asset(
-                                                "assets/empty-mission.svg",
-                                              ),
-                                            ),
-                                            Text(
-                                              "Pas de mission\nen cours pour le moment !",
-                                              textAlign: TextAlign.center,
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .titleLarge!
-                                                  .copyWith(fontSize: 18),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              "Créer une mission et suivez vos\nentrées et sorties",
-                                              textAlign: TextAlign.center,
-                                              style: Theme.of(
-                                                context,
-                                              ).textTheme.bodyMedium,
-                                            ),
-                                            const SizedBox(height: 24),
-                                            MaterialButton(
-                                              onPressed: () {
-                                                //
-                                                _newMission(context);
-                                                //
-                                              },
-                                              splashColor: Theme.of(context)
-                                                  .colorScheme
-                                                  .primary
-                                                  .withValues(alpha: 0.15),
-                                              color: Colors.transparent,
-                                              elevation: 0,
-                                              height: 50,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 24,
-                                                  ),
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(90),
-                                                side: BorderSide(
-                                                  width: 1,
-                                                  color:
-                                                      Theme.of(
-                                                            context,
-                                                          ).brightness ==
-                                                          Brightness.dark
-                                                      ? Colors.white.withValues(
-                                                          alpha: 0.2,
-                                                        )
-                                                      : Colors.grey.shade300,
-                                                ),
-                                              ),
-                                              child: Text(
-                                                "Ajouter une mission",
-                                                style: Theme.of(context)
-                                                    .textTheme
-                                                    .titleMedium!
-                                                    .copyWith(
-                                                      fontSize: 17,
-                                                      color:
-                                                          Theme.of(
-                                                                context,
-                                                              ).brightness ==
-                                                              Brightness.dark
-                                                          ? Colors.white
-                                                          : Theme.of(context)
-                                                                .colorScheme
-                                                                .primary,
-                                                    ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      )
-                                    : ListView.builder(
-                                        itemCount:
-                                            filteredOnGoingMissions.length,
-                                        shrinkWrap: true,
-                                        physics: const BouncingScrollPhysics(),
-                                        itemBuilder: (ctx, index) {
-                                          //
-                                          final mission =
-                                              filteredOnGoingMissions[index];
+                              return CustomScrollView(
+                                slivers: [
+                                  const SliverPadding(
+                                    padding: EdgeInsets.only(top: 16),
+                                  ),
 
-                                          //
-                                          return MissionContainerWidget(
-                                            onTap: () {
-                                              Navigator.of(context).push(
-                                                MaterialPageRoute(
-                                                  builder: (ctx) =>
-                                                      MissionDetail(
-                                                        mission: mission,
-                                                      ),
-                                                ),
-                                              );
-                                            },
-                                            missionIcon: mission.nom.substring(
-                                              0,
-                                              1,
-                                            ),
-                                            montantObjectif: mission.amountGoal,
-                                            missionName: mission.nom,
-                                            dateDebut: mission.dateDebut
-                                                .toString(),
-                                            dateFin: mission.dateFin.toString(),
-                                            capitale: mission.capitale,
-                                            capitalInitial:
-                                                mission.capitaleInitial,
-                                          );
-                                        },
+                                  /// Missions headline
+                                  SliverToBoxAdapter(
+                                    child: Center(
+                                      child: Text(
+                                        trans.isSearching == true
+                                            ? "Recherche en cours..."
+                                            : "Mes missions en cours",
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.titleLarge,
                                       ),
-                              ],
-                            ),
+                                    ),
+                                  ),
+                                  const SliverToBoxAdapter(
+                                    child: SizedBox(height: 16),
+                                  ),
+
+                                  /// Empty mission
+                                  if (trans.missions.isEmpty)
+                                    SliverFillRemaining(
+                                      child: _buildEmptyState(context),
+                                    )
+                                  else
+                                    SliverPadding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                      ),
+                                      sliver: SliverList(
+                                        delegate: SliverChildBuilderDelegate(
+                                          childCount: trans.missions.length,
+                                          (context, i) {
+                                            //
+                                            final mission = trans.missions[i];
+
+                                            //
+                                            return MissionContainerWidget(
+                                              onTap: () {
+                                                Navigator.of(context).push(
+                                                  MaterialPageRoute(
+                                                    builder: (context) =>
+                                                        MissionDetail(
+                                                          mission: mission,
+                                                        ),
+                                                  ),
+                                                );
+                                              },
+                                              missionIcon: mission.nom
+                                                  .substring(0, 1),
+                                              montantObjectif:
+                                                  mission.amountGoal,
+                                              missionName: mission.nom,
+                                              dateDebut: mission.dateDebut
+                                                  .toString(),
+                                              dateFin: mission.dateFin
+                                                  .toString(),
+                                              capitale: mission.capitale,
+                                              capitalInitial:
+                                                  mission.capitaleInitial,
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                  const SliverPadding(
+                                    padding: EdgeInsets.only(bottom: 100),
+                                  ),
+                                ],
+                              );
+                            },
                           ),
 
                           /// Missions clôturées
@@ -572,6 +500,73 @@ class _HomeState extends State<Home> {
           ),
         );
       },
+    );
+  }
+
+  Container _buildEmptyState(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        color: Colors.transparent,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: MediaQuery.sizeOf(context).width * 0.3,
+            height: 250,
+            child: SvgPicture.asset("assets/empty-mission.svg"),
+          ),
+          Text(
+            "Pas de mission\nen cours pour le moment !",
+            textAlign: TextAlign.center,
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge!.copyWith(fontSize: 18),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            "Créer une mission et suivez vos\nentrées et sorties",
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 24),
+          MaterialButton(
+            onPressed: () {
+              //
+              _newMission(context);
+              //
+            },
+            splashColor: Theme.of(
+              context,
+            ).colorScheme.primary.withValues(alpha: 0.15),
+            color: Colors.transparent,
+            elevation: 0,
+            height: 50,
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(90),
+              side: BorderSide(
+                width: 1,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white.withValues(alpha: 0.2)
+                    : Colors.grey.shade300,
+              ),
+            ),
+            child: Text(
+              "Ajouter une mission",
+              style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                fontSize: 17,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white
+                    : Theme.of(context).colorScheme.primary,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -1,9 +1,8 @@
 import 'dart:io';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:image_picker/image_picker.dart';
+
 
 class UserProvider with ChangeNotifier {
   /// Greeting
@@ -17,34 +16,7 @@ class UserProvider with ChangeNotifier {
   }
 
   ///
-  String userName = "";
   bool _disposed = false;
-
-  Future<void> getUserName() async {
-    final user = FirebaseAuth.instance.currentUser;
-    final firestore = FirebaseFirestore.instance;
-    if (user == null) return;
-    try {
-      //
-      DocumentSnapshot snapshot = await firestore
-          .collection("users")
-          .doc(user.uid)
-          .get();
-      //
-      if (snapshot.exists && snapshot.data() != null) {
-        userName = snapshot.get("name");
-      }
-      //
-      if (!_disposed) {
-        notifyListeners();
-      }
-      //
-    } catch (e) {
-      throw Exception(
-        "Erreur lors de la récupération du nom d'utilisateur: $e",
-      );
-    }
-  }
 
   ///
   final List<IconData> icons = [CupertinoIcons.house, CupertinoIcons.person];
@@ -60,9 +32,8 @@ class UserProvider with ChangeNotifier {
     }
   }
 
-  void resetNameAndIndex() {
+  void resetIndex() {
     if (!_disposed) {
-      userName = "";
       selectedIndex = 0;
       notifyListeners();
     }

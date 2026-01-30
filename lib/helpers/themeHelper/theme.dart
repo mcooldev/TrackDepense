@@ -6,7 +6,7 @@ class ThemeHelper {
   ThemeData lightMode = ThemeData(
     brightness: Brightness.light,
     colorScheme: const ColorScheme.light(
-      surface: Color(0xffF0F2F4),
+      surface: Colors.white,
       onSurface: Color(0xff11181C),
       primary: Color(0xFF8C1AB1),
       onPrimary: Colors.white,

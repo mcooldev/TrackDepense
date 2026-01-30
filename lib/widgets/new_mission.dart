@@ -19,6 +19,11 @@ class _NewMissionState extends State<NewMission> {
     return "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}";
   }
 
+  final db = '';
+  final userId = '';
+
+  // todo: set database and user id
+
   ///
   @override
   Widget build(BuildContext context) {
@@ -231,7 +236,7 @@ class _NewMissionState extends State<NewMission> {
 
               /// Add mission button
               MaterialButton(
-                onPressed: () {
+                onPressed: () async {
                   //
                   if (prov.nomController.text.isEmpty) {
                     Navigator.of(context).pop();
@@ -303,6 +308,7 @@ class _NewMissionState extends State<NewMission> {
                     capitaleInitial: double.parse(
                       prov.capitaleController.text.trim(),
                     ),
+                    createdAt: DateTime.now(),
                     capitale: double.parse(prov.capitaleController.text.trim()),
                     entrees: [],
                     depenses: [],
@@ -315,9 +321,11 @@ class _NewMissionState extends State<NewMission> {
                   );
                   //
                   prov.add(newMission);
+                  // todo: add mission to database method
                   //
                   prov.clearControllers();
                   //
+                  if(!context.mounted) return;
                   Navigator.of(context).pop();
                 },
                 splashColor: Theme.of(

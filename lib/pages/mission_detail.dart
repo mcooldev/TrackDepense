@@ -4,14 +4,12 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:provider/provider.dart';
-import 'package:track_depenses/pages/home.dart';
 import 'package:track_depenses/providers/share_files_providers.dart';
 import 'package:track_depenses/widgets/expense_detail.dart';
 import 'package:track_depenses/widgets/new_entree.dart';
 
 import '../models/transaction_model.dart';
 import '../providers/transaction_provider.dart';
-import '../providers/user_provider.dart';
 import '../widgets/add_entry_widget.dart';
 import '../widgets/new_expense.dart';
 
@@ -85,6 +83,7 @@ class _MissionDetailState extends State<MissionDetail> {
             minWidth: MediaQuery.sizeOf(context).width * 0.3,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(80),
+              side: BorderSide(width: 1, color: Colors.grey.shade200),
             ),
             elevation: 0,
             color: Theme.of(context).colorScheme.surface,
@@ -158,6 +157,7 @@ class _MissionDetailState extends State<MissionDetail> {
             minWidth: MediaQuery.sizeOf(context).width * 0.3,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(80),
+              side: BorderSide(width: 1, color: Colors.grey.shade200),
             ),
             elevation: 0,
             color: Theme.of(context).colorScheme.surface,
@@ -216,23 +216,14 @@ class _MissionDetailState extends State<MissionDetail> {
     return Consumer<TransactionProvider>(
       builder: (context, prov, child) {
         ///
-        final currentMission = prov.findMissionById(
-          missionId: widget.mission.id,
-        );
-        if (currentMission == null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            final userProv = Provider.of<UserProvider>(context, listen: false);
-            userProv.navigateWithFade(context, const Home());
-          });
-          return const SizedBox.shrink();
-        }
-        //
+        final currentMission = widget.mission;
+
         final operations = getAllTransaction(
           currentMission,
           prov.currentFilter,
         );
-        prov.filterTxnByName(operations, prov.searchController.text);
-        final filteredTxn = prov.filteredOp;
+        // prov.filterTxnByName(operations, prov.searchController.text);
+        // final filteredTxn = prov.filteredOp;
         //
         final opEntrees = operations.whereType<Entree>().toList();
         final opDepenses = operations.whereType<Depense>().toList();
@@ -244,6 +235,8 @@ class _MissionDetailState extends State<MissionDetail> {
                 currentMission.amountGoal!,
               );
         final textPercent = "${(calculatedPercent * 100).toStringAsFixed(0)}%";
+
+        // todo: get database and user id
 
         ///
         return Scaffold(
@@ -259,10 +252,12 @@ class _MissionDetailState extends State<MissionDetail> {
                   color: Theme.of(context).brightness == Brightness.dark
                       ? Colors.white.withValues(alpha: 0.1)
                       : Colors.white,
+                  border: Border.all(width: 1, color: Colors.grey.shade200),
                 ),
                 child: TextButton(
                   onPressed: () async {
                     await _deleteMissionDialog(context, currentMission);
+                    // todo: delete mission methode
                   },
                   child: Text(
                     "Supprimer",
@@ -279,7 +274,7 @@ class _MissionDetailState extends State<MissionDetail> {
 
           ///
           body: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 50),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -387,209 +382,14 @@ class _MissionDetailState extends State<MissionDetail> {
                 const SizedBox(height: 16),
 
                 /// Mission summary
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  width: MediaQuery.sizeOf(context).width,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white.withValues(alpha: 0.1)
-                        : Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          // Solde actuel et dernière opération
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Solde actuel
-                              Text(
-                                "Solde actuel",
-                                style: Theme.of(context).textTheme.bodyLarge,
-                              ),
-                              const SizedBox(height: 4),
-                              // Current solde
-                              Text(
-                                formatter.format(currentMission.capitale),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .headlineLarge!
-                                    .copyWith(
-                                      fontSize: 30,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                              ),
-                              const SizedBox(height: 4),
-                              // Last operation
-                              if (operations.isNotEmpty)
-                                Text(
-                                  operations.first is Entree
-                                      ? "+ ${formatter.format(opEntrees.first.montant)}"
-                                      : "- ${formatter.format(opDepenses.first.montant)}",
-                                  style: Theme.of(context).textTheme.bodyLarge!
-                                      .copyWith(
-                                        color: operations.first is Entree
-                                            ? Theme.of(
-                                                context,
-                                              ).colorScheme.secondary
-                                            : Theme.of(
-                                                context,
-                                              ).colorScheme.primary,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                )
-                              else
-                                Text(
-                                  "- 0F ajouté ni dépensé -",
-                                  style: Theme.of(context).textTheme.bodyLarge,
-                                ),
-                            ],
-                          ),
-                          // Circular percent indicator
-                          if (currentMission.amountGoal != null)
-                            CircularPercentIndicator(
-                              radius: 45,
-                              lineWidth: 7,
-                              percent: calculatedPercent,
-                              center: Text(
-                                textPercent,
-                                style: const TextStyle(fontSize: 18),
-                              ),
-                              backgroundColor: Theme.of(context).colorScheme.surface,
-                              progressColor:
-                                  (currentMission.isClosed &&
-                                      calculatedPercent >= 1.0)
-                                  ? Colors.green
-                                  : (currentMission.isClosed &&
-                                        calculatedPercent < 1.0)
-                                  ? Theme.of(context).colorScheme.error
-                                  : Theme.of(context).colorScheme.primary,
-                              circularStrokeCap: CircularStrokeCap.round,
-                            ),
-                        ],
-                      ),
-
-                      /// Make new entry or new expense
-                      if (currentMission.isClosed == false)
-                        Column(
-                          children: [
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: AddEntryWidget(
-                                    onTap: () {
-                                      // todo: add new entry
-                                      _showBottomSheet(
-                                        context,
-                                        NewEntree(mission: currentMission),
-                                        true,
-                                      );
-                                    },
-                                    containerBg: Theme.of(context)
-                                        .colorScheme
-                                        .secondary
-                                        .withValues(alpha: 0.1),
-                                    textColor:
-                                        Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Theme.of(
-                                            context,
-                                          ).colorScheme.secondary
-                                        : Theme.of(
-                                            context,
-                                          ).colorScheme.onSecondary,
-                                    icon: CupertinoIcons.arrow_up,
-                                    iconColor:
-                                        Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Theme.of(
-                                            context,
-                                          ).colorScheme.secondary
-                                        : Theme.of(
-                                            context,
-                                          ).colorScheme.onSecondary,
-                                    textEntry: "Entrée",
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: AddEntryWidget(
-                                    onTap: () {
-                                      // todo: add new expense
-                                      _showBottomSheet(
-                                        context,
-                                        NewExpense(mission: currentMission),
-                                        true,
-                                      );
-                                    },
-                                    containerBg: Theme.of(context)
-                                        .colorScheme
-                                        .primary
-                                        .withValues(alpha: 0.1),
-                                    textColor:
-                                        Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Colors.white
-                                        : Theme.of(context).colorScheme.primary,
-                                    icon: CupertinoIcons.arrow_down,
-                                    iconColor:
-                                        Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Colors.white
-                                        : Theme.of(context).colorScheme.primary,
-                                    textEntry: "Dépense",
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        )
-                      else if (currentMission.isClosed == true &&
-                          calculatedPercent == 1.0)
-                        Column(
-                          children: [
-                            const SizedBox(height: 10),
-                            Divider(
-                              thickness: 0.5,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withValues(alpha: 0.2),
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              "🎊🥳🎉\nVous avez atteint votre objectif",
-                              textAlign: TextAlign.center,
-                              style: Theme.of(context).textTheme.bodyLarge,
-                            ),
-                          ],
-                        )
-                      else if (currentMission.isClosed == true &&
-                          calculatedPercent < 1.0)
-                        Column(
-                          children: [
-                            const SizedBox(height: 10),
-                            Divider(
-                              thickness: 0.5,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withValues(alpha: 0.2),
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              "😔😩😖\nVous n'avez pas atteint votre objectif",
-                              textAlign: TextAlign.center,
-                              style: Theme.of(context).textTheme.bodyLarge,
-                            ),
-                          ],
-                        )
-                      else
-                        const SizedBox.shrink(),
-                    ],
-                  ),
+                missionSummaryContainer(
+                  context,
+                  currentMission,
+                  operations,
+                  opEntrees,
+                  opDepenses,
+                  calculatedPercent,
+                  textPercent,
                 ),
                 const SizedBox(height: 16),
 
@@ -613,6 +413,10 @@ class _MissionDetailState extends State<MissionDetail> {
                         minWidth: double.infinity,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(90),
+                          side: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 1,
+                          ),
                         ),
                         child: Text(
                           "Clôturer la mission",
@@ -688,6 +492,10 @@ class _MissionDetailState extends State<MissionDetail> {
                         minWidth: double.infinity,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(90),
+                          side: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 1,
+                          ),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -790,7 +598,7 @@ class _MissionDetailState extends State<MissionDetail> {
                   backgroundColor: WidgetStatePropertyAll(
                     Theme.of(context).brightness == Brightness.dark
                         ? Colors.black.withValues(alpha: 0.5)
-                        : Colors.white,
+                        : Colors.grey.shade100,
                   ),
                   hintText: "Chercher une entrée ou dépense",
                   hintStyle: WidgetStatePropertyAll(
@@ -800,318 +608,569 @@ class _MissionDetailState extends State<MissionDetail> {
 
                 const SizedBox(height: 16),
                 // History list
-                operations.isEmpty
-                    ? Container(
-                        width: MediaQuery.sizeOf(context).width,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 32,
+                StreamBuilder(
+                  stream: prov.fetchAllTxn(currentMission.id),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: CircularProgressIndicator.adaptive(),
+                      );
+                    }
+                    //
+                    if (snapshot.hasError) {
+                      return const Center(
+                        child: Text(
+                          "Une erreur s'est produite lors du chargement des données.",
                         ),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white.withValues(alpha: 0.1)
-                              : Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Column(
-                          children: [
-                            Icon(
-                              CupertinoIcons.tray,
-                              size: 44,
-                              color: Colors.grey.withValues(alpha: 0.3),
+                      );
+                    }
+                    //
+                    final filteredTxnList = snapshot.data ?? [];
+                    //
+                    return filteredTxnList.isEmpty
+                        ? Container(
+                            width: MediaQuery.sizeOf(context).width,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 32,
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              "Aucune opération",
-                              style: Theme.of(context).textTheme.titleLarge!
-                                  .copyWith(color: Colors.grey, fontSize: 18),
+                            decoration: BoxDecoration(
+                              color:
+                                  Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white.withValues(alpha: 0.1)
+                                  : Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                          ],
-                        ),
-                      )
-                    : Container(
-                        clipBehavior: Clip.antiAlias,
-                        width: MediaQuery.sizeOf(context).width,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white.withValues(alpha: 0.1)
-                              : Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: ListView.builder(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 0,
-                            horizontal: 0,
-                          ),
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: filteredTxn.length,
-                          itemBuilder: (context, index) {
-                            //
-                            final op = filteredTxn[index];
-                            // If mission is not closed yet
-                            if (!currentMission.isClosed) {
-                            return Slidable(
-                              key: ValueKey(op.id),
-                              endActionPane: ActionPane(
-                                motion: const ScrollMotion(),
-                                children: [
-                                  SlidableAction(
-                                    onPressed: (context) {
-                                      // todo: update operation
-                                      if (op is Entree) {
-                                        _showBottomSheet(
-                                          context,
-                                          NewEntree(
-                                            mission: currentMission,
-                                            entreeToEdit: op,
-                                          ),
-                                          true,
-                                        );
-                                      } else if (op is Depense) {
-                                        _showBottomSheet(
-                                          context,
-                                          NewExpense(
-                                            mission: currentMission,
-                                            depenseToEdit: op,
-                                          ),
-                                          true,
-                                        );
-                                      }
-                                    },
-                                    backgroundColor: op is Entree
-                                        ? Theme.of(
-                                            context,
-                                          ).colorScheme.secondary
-                                        : Theme.of(context).colorScheme.primary,
-                                    foregroundColor: op is Entree
-                                        ? Theme.of(
-                                            context,
-                                          ).colorScheme.onSecondary
-                                        : Theme.of(
-                                            context,
-                                          ).colorScheme.onPrimary,
-                                    icon: CupertinoIcons
-                                        .pencil_ellipsis_rectangle,
-                                    label: 'Modifier',
-                                  ),
-                                  SlidableAction(
-                                    onPressed: (context) {
-                                      // todo: delete operation
-                                      if (op is Entree) {
-                                        prov.removeEntree(currentMission, op);
-                                        //
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: const Text(
-                                              "🗑️ • Entrée supprimée avec succès",
-                                            ),
-                                            backgroundColor: Theme.of(
-                                              context,
-                                            ).colorScheme.secondary,
-                                            behavior: SnackBarBehavior.floating,
-                                          ),
-                                        );
-                                      } else if (op is Depense) {
-                                        prov.removeDepense(currentMission, op);
-                                        //
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: const Text(
-                                              "🗑️ • Dépense supprimée avec succès",
-                                            ),
-                                            backgroundColor: Theme.of(
-                                              context,
-                                            ).colorScheme.secondary,
-                                            behavior: SnackBarBehavior.floating,
-                                          ),
-                                        );
-                                      }
-                                    },
-                                    backgroundColor: Colors.red,
-                                    foregroundColor: Colors.white,
-                                    icon: CupertinoIcons.trash,
-                                    label: 'Supprimer',
-                                  ),
-                                ],
-                              ),
-                              child: ListTile(
-                                onTap: () {
-                                  if (op is Depense) {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (context) => ExpenseDetail(
-                                          depense: op,
-                                          mission: currentMission,
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                },
-                                //
-                                leading: op is Entree
-                                    ? Icon(
-                                        CupertinoIcons.arrow_up_circle_fill,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.secondary,
-                                        size: 32,
-                                      )
-                                    : Icon(
-                                        CupertinoIcons.arrow_down_circle_fill,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                        size: 32,
-                                      ),
-                                title: Text(
-                                  op.description,
-                                  style: Theme.of(context).textTheme.bodyLarge!
+                            child: Column(
+                              children: [
+                                Icon(
+                                  CupertinoIcons.tray,
+                                  size: 44,
+                                  color: Colors.grey.withValues(alpha: 0.3),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  "Aucune opération",
+                                  style: Theme.of(context).textTheme.titleLarge!
                                       .copyWith(
-                                        color:
-                                            Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? Colors.white
-                                            : Colors.black,
-                                        fontWeight: FontWeight.w600,
+                                        color: Colors.grey,
+                                        fontSize: 18,
                                       ),
                                 ),
-                                subtitle: Text(
-                                  formattedDate.format(op.date),
-                                  style: Theme.of(context).textTheme.bodyLarge,
-                                ),
-                                trailing: op is Entree
-                                    ? Text(
-                                        formatter.format(
-                                          double.parse(op.montant.toString()),
-                                        ),
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodyLarge!
-                                            .copyWith(
-                                              color:
-                                                  Theme.of(
-                                                        context,
-                                                      ).brightness ==
-                                                      Brightness.dark
-                                                  ? Colors.white
-                                                  : Colors.black,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                      )
-                                    : Text(
-                                        "-${formatter.format(double.parse(op.montant.toString()))}",
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodyLarge!
-                                            .copyWith(
-                                              color:
-                                                  Theme.of(
-                                                        context,
-                                                      ).brightness ==
-                                                      Brightness.dark
-                                                  ? Colors.white
-                                                  : Colors.black,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                      ),
+                              ],
+                            ),
+                          )
+                        : Container(
+                            clipBehavior: Clip.antiAlias,
+                            width: MediaQuery.sizeOf(context).width,
+                            decoration: BoxDecoration(
+                              color:
+                                  Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white.withValues(alpha: 0.1)
+                                  : Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                width: 1,
+                                color: Colors.grey.shade200,
                               ),
-                            );
-                            }
-                            // If mission is closed
-                            return ListTile(
-                              onTap: () {
-                                if (op is Depense) {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (context) => ExpenseDetail(
-                                        depense: op,
-                                        mission: currentMission,
+                            ),
+                            child: ListView.separated(
+                              itemCount: filteredTxnList.length,
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              padding: const EdgeInsets.all(0),
+                              separatorBuilder: (context, i) => Divider(
+                                thickness: 1,
+                                color: Colors.grey.shade200,
+                              ),
+                              itemBuilder: (context, i) {
+                                //
+                                final op = filteredTxnList[i];
+                                // If mission is not closed yet
+                                if (!currentMission.isClosed) {
+                                  return Slidable(
+                                    key: ValueKey(op.id),
+                                    endActionPane: ActionPane(
+                                      motion: const ScrollMotion(),
+                                      children: [
+                                        SlidableAction(
+                                          onPressed: (context) {
+                                            // todo: update operation
+                                            if (op is Entree) {
+                                              _showBottomSheet(
+                                                context,
+                                                NewEntree(
+                                                  mission: currentMission,
+                                                  entreeToEdit: op,
+                                                ),
+                                                true,
+                                              );
+                                            } else if (op is Depense) {
+                                              _showBottomSheet(
+                                                context,
+                                                NewExpense(
+                                                  mission: currentMission,
+                                                  depenseToEdit: op,
+                                                ),
+                                                true,
+                                              );
+                                            }
+                                          },
+                                          backgroundColor: op is Entree
+                                              ? Theme.of(
+                                                  context,
+                                                ).colorScheme.secondary
+                                              : Theme.of(
+                                                  context,
+                                                ).colorScheme.primary,
+                                          foregroundColor: op is Entree
+                                              ? Theme.of(
+                                                  context,
+                                                ).colorScheme.onSecondary
+                                              : Theme.of(
+                                                  context,
+                                                ).colorScheme.onPrimary,
+                                          icon: CupertinoIcons
+                                              .pencil_ellipsis_rectangle,
+                                          label: 'Modifier',
+                                        ),
+                                        SlidableAction(
+                                          onPressed: (context) async {
+                                            // todo: delete operation
+                                            if (op is Entree) {
+                                              prov.removeEntree(
+                                                currentMission,
+                                                op,
+                                              );
+                                              // todo: delete entree method from database
+                                              //
+                                              if (!context.mounted) return;
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                SnackBar(
+                                                  content: const Text(
+                                                    "🗑️ • Entrée supprimée avec succès",
+                                                  ),
+                                                  backgroundColor: Theme.of(
+                                                    context,
+                                                  ).colorScheme.secondary,
+                                                  behavior:
+                                                      SnackBarBehavior.floating,
+                                                ),
+                                              );
+                                            } else if (op is Depense) {
+                                              prov.removeDepense(
+                                                currentMission,
+                                                op,
+                                              );
+                                              // todo: delete depense method from database
+                                              //
+                                              if (!context.mounted) return;
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                SnackBar(
+                                                  content: const Text(
+                                                    "🗑️ • Dépense supprimée avec succès",
+                                                  ),
+                                                  backgroundColor: Theme.of(
+                                                    context,
+                                                  ).colorScheme.secondary,
+                                                  behavior:
+                                                      SnackBarBehavior.floating,
+                                                ),
+                                              );
+                                            }
+                                          },
+                                          backgroundColor: Colors.red,
+                                          foregroundColor: Colors.white,
+                                          icon: CupertinoIcons.trash,
+                                          label: 'Supprimer',
+                                        ),
+                                      ],
+                                    ),
+                                    child: ListTile(
+                                      onTap: () {
+                                        if (op is Depense) {
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  ExpenseDetail(
+                                                    depense: op,
+                                                    mission: currentMission,
+                                                  ),
+                                            ),
+                                          );
+                                        }
+                                      },
+                                      //
+                                      leading: op is Entree
+                                          ? Icon(
+                                              CupertinoIcons
+                                                  .arrow_up_circle_fill,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.secondary,
+                                              size: 32,
+                                            )
+                                          : Icon(
+                                              CupertinoIcons
+                                                  .arrow_down_circle_fill,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.primary,
+                                              size: 32,
+                                            ),
+                                      title: Text(
+                                        op.description,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyLarge!
+                                            .copyWith(
+                                              color:
+                                                  Theme.of(
+                                                        context,
+                                                      ).brightness ==
+                                                      Brightness.dark
+                                                  ? Colors.white
+                                                  : Colors.black,
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                       ),
+                                      subtitle: Text(
+                                        formattedDate.format(op.date),
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodyLarge,
+                                      ),
+                                      trailing: op is Entree
+                                          ? Text(
+                                              formatter.format(
+                                                double.parse(
+                                                  op.montant.toString(),
+                                                ),
+                                              ),
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .bodyLarge!
+                                                  .copyWith(
+                                                    color:
+                                                        Theme.of(
+                                                              context,
+                                                            ).brightness ==
+                                                            Brightness.dark
+                                                        ? Colors.white
+                                                        : Colors.black,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                            )
+                                          : Text(
+                                              "-${formatter.format(double.parse(op.montant.toString()))}",
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .bodyLarge!
+                                                  .copyWith(
+                                                    color:
+                                                        Theme.of(
+                                                              context,
+                                                            ).brightness ==
+                                                            Brightness.dark
+                                                        ? Colors.white
+                                                        : Colors.black,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                            ),
                                     ),
                                   );
                                 }
+                                // If mission is closed
+                                return ListTile(
+                                  onTap: () {
+                                    if (op is Depense) {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (context) => ExpenseDetail(
+                                            depense: op,
+                                            mission: currentMission,
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  //
+                                  leading: op is Entree
+                                      ? Icon(
+                                          CupertinoIcons.arrow_up_circle_fill,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.secondary,
+                                          size: 32,
+                                        )
+                                      : Icon(
+                                          CupertinoIcons.arrow_down_circle_fill,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                          size: 32,
+                                        ),
+                                  title: Text(
+                                    op.description,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyLarge!
+                                        .copyWith(
+                                          color:
+                                              Theme.of(context).brightness ==
+                                                  Brightness.dark
+                                              ? Colors.white
+                                              : Colors.black,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                  ),
+                                  subtitle: Text(
+                                    formattedDate.format(op.date),
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyLarge,
+                                  ),
+                                  trailing: op is Entree
+                                      ? Text(
+                                          formatter.format(
+                                            double.parse(op.montant.toString()),
+                                          ),
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodyLarge!
+                                              .copyWith(
+                                                color:
+                                                    Theme.of(
+                                                          context,
+                                                        ).brightness ==
+                                                        Brightness.dark
+                                                    ? Colors.white
+                                                    : Colors.black,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                        )
+                                      : Text(
+                                          "-${formatter.format(double.parse(op.montant.toString()))}",
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodyLarge!
+                                              .copyWith(
+                                                color:
+                                                    Theme.of(
+                                                          context,
+                                                        ).brightness ==
+                                                        Brightness.dark
+                                                    ? Colors.white
+                                                    : Colors.black,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                        ),
+                                );
                               },
-                              //
-                              leading: op is Entree
-                                  ? Icon(
-                                CupertinoIcons.arrow_up_circle_fill,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.secondary,
-                                size: 32,
-                              )
-                                  : Icon(
-                                CupertinoIcons.arrow_down_circle_fill,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.primary,
-                                size: 32,
-                              ),
-                              title: Text(
-                                op.description,
-                                style: Theme.of(context).textTheme.bodyLarge!
-                                    .copyWith(
-                                  color:
-                                  Theme.of(context).brightness ==
-                                      Brightness.dark
-                                      ? Colors.white
-                                      : Colors.black,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              subtitle: Text(
-                                formattedDate.format(op.date),
-                                style: Theme.of(context).textTheme.bodyLarge,
-                              ),
-                              trailing: op is Entree
-                                  ? Text(
-                                formatter.format(
-                                  double.parse(op.montant.toString()),
-                                ),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyLarge!
-                                    .copyWith(
-                                  color:
-                                  Theme.of(
-                                    context,
-                                  ).brightness ==
-                                      Brightness.dark
-                                      ? Colors.white
-                                      : Colors.black,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              )
-                                  : Text(
-                                "-${formatter.format(double.parse(op.montant.toString()))}",
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyLarge!
-                                    .copyWith(
-                                  color:
-                                  Theme.of(
-                                    context,
-                                  ).brightness ==
-                                      Brightness.dark
-                                      ? Colors.white
-                                      : Colors.black,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
+                            ),
+                          );
+                  },
+                ),
               ],
             ),
           ),
         );
       },
+    );
+  }
+
+  Container missionSummaryContainer(
+    BuildContext context,
+    Mission currentMission,
+    List<dynamic> operations,
+    List<Entree> opEntrees,
+    List<Depense> opDepenses,
+    double calculatedPercent,
+    String textPercent,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      width: MediaQuery.sizeOf(context).width,
+      decoration: BoxDecoration(
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.white.withValues(alpha: 0.1)
+            : Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Solde actuel et dernière opération
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Solde actuel
+                  Text(
+                    "Solde actuel",
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                  const SizedBox(height: 4),
+                  // Current solde
+                  Text(
+                    formatter.format(currentMission.capitale),
+                    style: Theme.of(context).textTheme.headlineLarge!.copyWith(
+                      fontSize: 30,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  // Last operation
+                  if (operations.isNotEmpty)
+                    Text(
+                      operations.first is Entree
+                          ? "+ ${formatter.format(opEntrees.first.montant)}"
+                          : "- ${formatter.format(opDepenses.first.montant)}",
+                      style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                        color: operations.first is Entree
+                            ? Theme.of(context).colorScheme.secondary
+                            : Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    )
+                  else
+                    Text(
+                      "- 0F ajouté ni dépensé -",
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                ],
+              ),
+              // Circular percent indicator
+              if (currentMission.amountGoal != null)
+                CircularPercentIndicator(
+                  radius: 45,
+                  lineWidth: 7,
+                  percent: calculatedPercent,
+                  center: Text(
+                    textPercent,
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                  backgroundColor: Theme.of(context).colorScheme.surface,
+                  progressColor:
+                      (currentMission.isClosed && calculatedPercent >= 1.0)
+                      ? Colors.green
+                      : (currentMission.isClosed && calculatedPercent < 1.0)
+                      ? Theme.of(context).colorScheme.error
+                      : Theme.of(context).colorScheme.primary,
+                  circularStrokeCap: CircularStrokeCap.round,
+                ),
+            ],
+          ),
+
+          /// Make new entry or new expense
+          if (currentMission.isClosed == false)
+            Column(
+              children: [
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: AddEntryWidget(
+                        onTap: () {
+                          // todo: add new entry
+                          _showBottomSheet(
+                            context,
+                            NewEntree(mission: currentMission),
+                            true,
+                          );
+                        },
+                        containerBg: Theme.of(
+                          context,
+                        ).colorScheme.secondary.withValues(alpha: 0.1),
+                        textColor:
+                            Theme.of(context).brightness == Brightness.dark
+                            ? Theme.of(context).colorScheme.secondary
+                            : Theme.of(context).colorScheme.onSecondary,
+                        icon: CupertinoIcons.arrow_up,
+                        iconColor:
+                            Theme.of(context).brightness == Brightness.dark
+                            ? Theme.of(context).colorScheme.secondary
+                            : Theme.of(context).colorScheme.onSecondary,
+                        textEntry: "Entrée",
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: AddEntryWidget(
+                        onTap: () {
+                          // todo: add new expense
+                          _showBottomSheet(
+                            context,
+                            NewExpense(mission: currentMission),
+                            true,
+                          );
+                        },
+                        containerBg: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.1),
+                        textColor:
+                            Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Theme.of(context).colorScheme.primary,
+                        icon: CupertinoIcons.arrow_down,
+                        iconColor:
+                            Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Theme.of(context).colorScheme.primary,
+                        textEntry: "Dépense",
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            )
+          else if (currentMission.isClosed == true && calculatedPercent == 1.0)
+            Column(
+              children: [
+                const SizedBox(height: 10),
+                Divider(
+                  thickness: 0.5,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.2),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  "🎊🥳🎉\nVous avez atteint votre objectif",
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+              ],
+            )
+          else if (currentMission.isClosed == true && calculatedPercent < 1.0)
+            Column(
+              children: [
+                const SizedBox(height: 10),
+                Divider(
+                  thickness: 0.5,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.2),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  "😔😩😖\nVous n'avez pas atteint votre objectif",
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+              ],
+            )
+          else
+            const SizedBox.shrink(),
+        ],
+      ),
     );
   }
 }

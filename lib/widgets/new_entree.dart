@@ -18,6 +18,12 @@ class NewEntree extends StatefulWidget {
 
 class _NewEntreeState extends State<NewEntree> {
   ///
+  final db = '';
+  final userId = '';
+
+  // todo: set database and user id
+
+  ///
   @override
   void initState() {
     super.initState();
@@ -44,9 +50,9 @@ class _NewEntreeState extends State<NewEntree> {
               // Titre
               Text(
                 "Ajout de nouvel entrée",
-                style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                      fontWeight: FontWeight.w600,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge!.copyWith(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 24),
               // Montant de l'entrée
@@ -88,7 +94,7 @@ class _NewEntreeState extends State<NewEntree> {
               const SizedBox(height: 24),
               // Bouton
               MaterialButton(
-                onPressed: () {
+                onPressed: () async {
                   //
                   final newEntree = Entree(
                     id: widget.entreeToEdit?.id,
@@ -100,14 +106,18 @@ class _NewEntreeState extends State<NewEntree> {
                   );
                   if (widget.entreeToEdit != null) {
                     prov.updateEntree(widget.mission, newEntree);
+                    // todo: update entree method in db
                   } else {
                     prov.add(newEntree);
                     //
                     prov.addEntreeToMission(widget.mission, newEntree);
+                    //
+                    // todo: add entree method in db
                   }
                   //
                   prov.clearControllers();
                   //
+                  if (!context.mounted) return;
                   Navigator.of(context).pop();
                   //
                   ScaffoldMessenger.of(context).showSnackBar(

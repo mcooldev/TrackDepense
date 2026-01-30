@@ -1,17 +1,16 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
+import 'dart:developer';
 
-import '../helpers/firebaseHelper/firebase_service.dart';
+import 'package:flutter/material.dart';
+import 'package:track_depenses/helpers/pocketBaseHelper/pocketbase_db.dart';
+
 import '../models/user_model.dart';
 
 abstract class AuthenticationProvider with ChangeNotifier {
-  //
-  final auth = Authentication.instance;
 
   //
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
-
+  final pb = PocketBaseDb.instance;
   //
   bool passwordObscure = true;
   bool confirmPasswordObscure = true;
@@ -55,32 +54,67 @@ class LoginProvider extends AuthenticationProvider {
       try {
         //
         final newUserToLogin = UserModel(
-          id: "",
           email: emailController.text.trim(),
           password: passwordController.text.trim(),
         );
         //
-        await auth.login(newUserToLogin);
-        //
-        if (!context.mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              "🎊✅🎉 • Vous êtes connecté !",
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium!.copyWith(color: Colors.white),
-            ),
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            behavior: SnackBarBehavior.floating,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(90)),
-            ),
-          ),
-        );
-        //
-        if (!context.mounted) return;
-        Navigator.pushReplacementNamed(context, "/authGate");
+        await pb
+            .loginUser(newUserToLogin)
+            .then(
+              (val) {
+                if (val == true) {
+                  if (!context.mounted) return;
+                  Navigator.pushReplacementNamed(context, "/authGate");
+                  //
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        "🎊✅🎉 • Vous êtes connecté !",
+                        style: Theme.of(
+                          context,
+                        ).textTheme.titleMedium!.copyWith(color: Colors.white),
+                      ),
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      behavior: SnackBarBehavior.floating,
+                      shape: const StadiumBorder(),
+                    ),
+                  );
+                } else {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        "❌⚠️❌ • Identifiants incorrects !",
+                        style: Theme.of(
+                          context,
+                        ).textTheme.titleMedium!.copyWith(color: Colors.white),
+                      ),
+                      backgroundColor: Theme.of(context).colorScheme.error,
+                      behavior: SnackBarBehavior.floating,
+                      shape: const StadiumBorder(),
+                    ),
+                  );
+                  _isLoading = false;
+                  notifyListeners();
+                }
+              },
+              onError: (_) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      "⚠️ • Erreur lors de la connexion !",
+                      style: Theme.of(
+                        context,
+                      ).textTheme.titleMedium!.copyWith(color: Colors.white),
+                    ),
+                    backgroundColor: Theme.of(context).colorScheme.error,
+                    behavior: SnackBarBehavior.floating,
+                    shape: const StadiumBorder(),
+                  ),
+                );
+              },
+            );
         //
         emailController.clear();
         passwordController.clear();
@@ -102,9 +136,7 @@ class LoginProvider extends AuthenticationProvider {
             ),
             backgroundColor: Theme.of(context).colorScheme.error,
             behavior: SnackBarBehavior.floating,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(90)),
-            ),
+            shape: const StadiumBorder(),
           ),
         );
         //
@@ -118,18 +150,7 @@ class LoginProvider extends AuthenticationProvider {
       _isLoading = true;
       notifyListeners();
       //
-      final userCredential = await auth.signInWithGoogle();
-      //
-      final user = userCredential?.user;
-      if (user == null) return;
-      //
-      final firestore = FirebaseFirestore.instance;
-      final addUserToFirestore = {
-        "id": user.uid,
-        "name": user.displayName,
-        "email": user.email,
-      };
-      firestore.collection("users").doc(user.uid).set(addUserToFirestore);
+      // todo: get user credential
       //
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -142,9 +163,7 @@ class LoginProvider extends AuthenticationProvider {
           ),
           backgroundColor: Theme.of(context).colorScheme.primary,
           behavior: SnackBarBehavior.floating,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(90)),
-          ),
+          shape: const StadiumBorder(),
         ),
       );
       //
@@ -172,8 +191,6 @@ class SignupProvider extends AuthenticationProvider {
   //
   Future<void> signup(BuildContext context) async {
     //
-    final firestore = FirebaseFirestore.instance;
-    //
     if (signupFormKey.currentState!.validate()) {
       //
       _isLoading = true;
@@ -182,25 +199,16 @@ class SignupProvider extends AuthenticationProvider {
       try {
         //
         final newUserToSignup = UserModel(
-          id: "",
           email: emailController.text.trim(),
-          password: passwordController.text.trim(),
           name: nameController.text.trim(),
+          password: passwordController.text.trim(),
+          passwordConfirm: passwordController.text.trim(),
         );
+        await pb.createAndLogUser(newUserToSignup);
+        log("User created successfully");
         //
-        final userCredential = await auth.signup(newUserToSignup);
-        //
-        final user = userCredential.user;
-        if (user == null) return;
-        final addUserToFirestore = {
-          "id": user.uid,
-          "name": newUserToSignup.name,
-          "email": newUserToSignup.email,
-        };
-        await firestore
-            .collection("users")
-            .doc(user.uid)
-            .set(addUserToFirestore);
+        if (!context.mounted) return;
+        Navigator.pushReplacementNamed(context, "/authGate");
         //
         if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -213,14 +221,9 @@ class SignupProvider extends AuthenticationProvider {
             ),
             backgroundColor: Theme.of(context).colorScheme.primary,
             behavior: SnackBarBehavior.floating,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(90)),
-            ),
+            shape: const StadiumBorder(),
           ),
         );
-        //
-        if (!context.mounted) return;
-        Navigator.pushReplacementNamed(context, "/authGate");
         //
         nameController.clear();
         emailController.clear();
@@ -229,7 +232,7 @@ class SignupProvider extends AuthenticationProvider {
         //
         notifyListeners();
       } catch (e) {
-        throw Exception(e);
+        log(e.toString());
       } finally {
         _isLoading = false;
         notifyListeners();
@@ -243,28 +246,13 @@ class SignupProvider extends AuthenticationProvider {
       _isLoading = true;
       notifyListeners();
       //
-      final userCredential = await auth.signInWithGoogle();
-      //
-      final user = userCredential?.user;
-      if (user == null) return;
-      //
-      final firestore = FirebaseFirestore.instance;
-      final addUserToFirestore = {
-        "id": user.uid,
-        "name": user.displayName,
-        "email": user.email,
-      };
-      firestore.collection("users").doc(user.uid).set(addUserToFirestore);
-      //
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text("🎊✅🎉 • Vous êtes connecté !"),
           backgroundColor: Theme.of(context).colorScheme.primary,
           behavior: SnackBarBehavior.floating,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(90)),
-          ),
+          shape: const StadiumBorder(),
         ),
       );
       //
