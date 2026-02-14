@@ -5,6 +5,7 @@ import 'package:track_depenses/providers/onboarding_provider.dart';
 
 import '../../helpers/pocketBaseHelper/pocketbase_db.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/reset_pwd_provider.dart';
 import '../../widgets/text_form_field_widget.dart';
 
 class Login extends StatefulWidget {
@@ -21,6 +22,10 @@ class _LoginState extends State<Login> {
   ///
   @override
   Widget build(BuildContext context) {
+    ///
+    final resetProv = Provider.of<ResetPasswordProvider>(context);
+
+    ///
     return ChangeNotifierProvider(
       create: (context) => LoginProvider(),
       child: Scaffold(
@@ -193,10 +198,11 @@ class _LoginState extends State<Login> {
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
                             TextButton(
-                              onPressed: () {
-                                Navigator.of(
+                              onPressed: () async {
+                                await resetProv.resetPasswordDialog(
                                   context,
-                                ).pushNamed("/resetPassword");
+                                  resetProv,
+                                );
                               },
                               child: Text(
                                 "Mot de passe oublié ?",
@@ -221,7 +227,7 @@ class _LoginState extends State<Login> {
                         /// Login button
                         MaterialButton(
                           onPressed: () async {
-                            await prov.login(context).then((_){
+                            await prov.login(context).then((_) {
                               obProv.setFirstTimeComplete();
                             });
                           },

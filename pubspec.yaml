@@ -53,6 +53,10 @@ dependencies:
   pocketbase: ^0.23.2
   url_launcher: ^6.3.2
   app_links: ^6.4.1
+  http: ^1.6.0
+  cached_network_image: ^3.4.1
+  hugeicons: ^1.1.5
+  flutter_image_compress: ^2.4.0
 
 flutter_launcher_icons:
   android: "launcher_icon"

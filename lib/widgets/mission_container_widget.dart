@@ -17,6 +17,7 @@ class MissionContainerWidget extends StatelessWidget {
     required this.missionIcon,
     required this.onTap,
     required this.montantObjectif,
+    required this.isClosed,
   });
 
   final String missionName;
@@ -26,6 +27,7 @@ class MissionContainerWidget extends StatelessWidget {
   final double? montantObjectif;
   final double capitalInitial;
   final String missionIcon;
+  final bool isClosed;
   final void Function() onTap;
 
   @override
@@ -58,12 +60,6 @@ class MissionContainerWidget extends StatelessWidget {
               ? Colors.white.withValues(alpha: 0.1)
               : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(8),
-          // border: Border.all(
-          //   color: Theme.of(context).brightness == Brightness.dark
-          //       ? Colors.white.withValues(alpha: 0.1)
-          //       : Colors.grey.shade200,
-          //   width: 1,
-          // ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -100,40 +96,82 @@ class MissionContainerWidget extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
 
-                        /// Mission amount goal
-                        Container(
-                          padding: const EdgeInsets.fromLTRB(
-                            8, 6, 12, 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.secondary,
-                            borderRadius: BorderRadius.circular(80),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                CupertinoIcons.rocket,
-                                size: 20,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSecondary,
+                        /// Mission state and amount goal
+                        Row(
+                          children: [
+                            // Mission state
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
                               ),
-                              const SizedBox(width: 8),
-                              Text(
-                                formattedCurrency.format(
-                                  montantObjectif ?? 0.0,
-                                ),
-                                style: Theme.of(context).textTheme.bodyMedium!
-                                    .copyWith(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSecondary,
-                                      fontWeight: FontWeight.bold,
+                              decoration: BoxDecoration(
+                                color: isClosed
+                                    ? CupertinoColors.systemRed
+                                    : Colors.green,
+                                borderRadius: BorderRadius.circular(80),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    isClosed
+                                        ? CupertinoIcons.archivebox
+                                        : CupertinoIcons.arrow_right,
+                                    size: 20,
+                                    color: Colors.white,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    isClosed ? "Clôturée" : "En cours",
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium!
+                                        .copyWith(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            // Mission amount goal
+                            Container(
+                              padding: const EdgeInsets.fromLTRB(8, 6, 12, 6),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.secondary,
+                                borderRadius: BorderRadius.circular(80),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    CupertinoIcons.rocket,
+                                    size: 20,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSecondary,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    formattedCurrency.format(
+                                      montantObjectif ?? 0.0,
                                     ),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium!
+                                        .copyWith(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSecondary,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -173,7 +211,7 @@ class MissionContainerWidget extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        "Capitale de départ : ",
+                        "Budget de départ : ",
                         style: Theme.of(context).textTheme.bodyLarge,
                       ),
                       Text(
@@ -203,10 +241,10 @@ class MissionContainerWidget extends StatelessWidget {
                       Row(
                         children: [
                           Icon(
-                            capitale >= capitalInitial
-                                ? CupertinoIcons.arrow_up
+                            capitale > 0
+                                ? CupertinoIcons.arrow_right
                                 : CupertinoIcons.arrow_down,
-                            color: capitale >= capitalInitial
+                            color: capitale > 0
                                 ? Colors.green
                                 : Colors.red,
                             size: 20,
@@ -220,7 +258,7 @@ class MissionContainerWidget extends StatelessWidget {
                                 .copyWith(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w600,
-                                  color: capitale >= capitalInitial
+                                  color: capitale > 0
                                       ? Colors.green
                                       : Colors.red,
                                 ),

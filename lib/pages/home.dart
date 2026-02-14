@@ -1,15 +1,19 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:track_depenses/helpers/pocketBaseHelper/pocketbase_db.dart';
-import 'package:track_depenses/pages/mission_detail.dart';
+import 'package:track_depenses/helpers/pocketBaseHelper/trx_db.dart';
+import 'package:track_depenses/pages/closed_missions.dart';
 import 'package:track_depenses/pages/profile.dart';
+import 'package:track_depenses/widgets/missions_stream_wrapper.dart';
 import 'package:track_depenses/widgets/new_mission.dart';
 
-import '../providers/transaction_provider.dart';
+import '../models/transaction_model.dart';
+
 import '../providers/user_provider.dart';
-import '../widgets/mission_container_widget.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -20,6 +24,34 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   ///
+  late Stream<List<Mission>> _missionsEnCoursStream;
+
+  final TextEditingController searchMissionController = TextEditingController();
+  Timer? _searchDebounce;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final prov = Provider.of<UserProvider>(context, listen: false);
+      prov.setSelectedIndex(0);
+    });
+    _initStreams();
+  }
+
+  void _initStreams() {
+    _missionsEnCoursStream = TrxDb.instance.fetchMissionsOnPb(
+      searchMissionController.text,
+      false,
+    );
+  }
+
+  @override
+  void dispose() {
+    searchMissionController.dispose();
+    _searchDebounce?.cancel();
+    super.dispose();
+  }
 
   void _newMission(BuildContext context) {
     showModalBottomSheet(
@@ -40,468 +72,264 @@ class _HomeState extends State<Home> {
   @override
   Widget build(BuildContext context) {
     ///
-    final trans = Provider.of<TransactionProvider>(context);
     final currentUser = PocketBaseDb.instance.pb.authStore.record;
+
     ///
     return Consumer<UserProvider>(
       builder: (_, prov, _) {
         ///
 
         ///
-        return DefaultTabController(
-          length: 2,
-          child: Scaffold(
-            ///
-            appBar: AppBar(
-              automaticallyImplyLeading: false,
-              title: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      prov.navigateWithFade(context, const Profile());
-                      prov.selectedIndex = 1;
-                    },
-                    child: const CircleAvatar(
-                      radius: 22,
-                      backgroundImage: AssetImage("assets/td_launcher_icon.png"),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        prov.greeting,
-                        style: Theme.of(context).textTheme.bodyLarge,
-                      ),
-                      Text(
-                        currentUser?.getStringValue("name").split(' ').first ?? "Inconnu",
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              actions: [
+        return Scaffold(
+          ///
+          appBar: AppBar(
+            automaticallyImplyLeading: false,
+            title: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
                 GestureDetector(
                   onTap: () {
-                    _newMission(context);
+                    prov.navigateWithFade(context, const Profile());
+                    prov.selectedIndex = 1;
                   },
-                  child: Container(
-                    margin: const EdgeInsets.only(right: 16),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    height: 44,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(90),
-                      border: Border.all(
-                        width: 1,
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white.withValues(alpha: 0.2)
-                            : Colors.grey.shade200
-                      ),
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white.withValues(alpha: 0.1)
-                          : Colors.white,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.add,
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white
-                              : Theme.of(context).colorScheme.primary,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          "Mission",
-                          style: Theme.of(context).textTheme.bodyLarge!
-                              .copyWith(
-                                color:
-                                    Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? Colors.white
-                                    : Theme.of(context).colorScheme.primary,
-                              ),
-                        ),
-                      ],
-                    ),
+                  child: const CircleAvatar(
+                    radius: 22,
+                    backgroundImage: AssetImage("assets/td_launcher_icon.png"),
                   ),
                 ),
-              ],
-            ),
-
-            /// Body content here
-            body: Stack(
-              children: [
+                const SizedBox(width: 8),
                 Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Search bar for history
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: SearchBar(
-                        controller: trans.searchMissionController,
-                        onChanged: trans.filterOnGoingMissionByName,
-                        elevation: const WidgetStatePropertyAll(0),
-                        onTapOutside: (pointer) {
-                          FocusManager.instance.primaryFocus?.unfocus();
-                        },
-                        leading: Icon(
-                          CupertinoIcons.search,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                        padding: const WidgetStatePropertyAll(
-                          EdgeInsets.only(left: 20),
-                        ),
-                        backgroundColor: WidgetStatePropertyAll(
-                          Theme.of(context).brightness == Brightness.dark
-                              ? Colors.black.withValues(alpha: 0.5)
-                              : Colors.grey.shade100,
-                        ),
-                        trailing: [
-                          IconButton(
-                            onPressed: () {
-                              trans.clearSearchField();
-                            },
-                            icon: Icon(
-                              CupertinoIcons.multiply,
-                              color: Colors.grey.shade300,
-                            ),
-                            splashColor: Theme.of(
-                              context,
-                            ).colorScheme.primary.withValues(alpha: 0.15),
-                          ),
-                        ],
-                        hintText: "Chercher une mission en cours",
-                        hintStyle: WidgetStatePropertyAll(
-                          Theme.of(context).textTheme.bodyLarge,
-                        ),
-                      ),
+                    Text(
+                      prov.greeting,
+                      style: Theme.of(context).textTheme.bodyLarge,
                     ),
-
-                    /// Tabs
-                    TabBar(
-                      dividerColor:
-                          Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white.withValues(alpha: 0.15)
-                          : Colors.grey.shade300,
-                      splashBorderRadius: BorderRadius.circular(90),
-                      indicatorColor:
-                          Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white
-                          : Theme.of(context).colorScheme.primary,
-                      labelColor:
-                          Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white
-                          : Theme.of(context).colorScheme.primary,
-                      unselectedLabelColor:
-                          Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white.withValues(alpha: 0.4)
-                          : Theme.of(context).colorScheme.onSurface,
-                      tabs: const [
-                        Tab(text: "Missions en cours"),
-                        Tab(text: "Missions clôturées"),
-                      ],
-                    ),
-
-                    /// Tab content
-                    Expanded(
-                      child: TabBarView(
-                        children: [
-                          /// Missions en cours
-                          StreamBuilder(
-                            stream: null,
-                            builder: (ctx, snapshot) {
-                              if (snapshot.connectionState ==
-                                  ConnectionState.waiting) {
-                                return const Center(
-                                  child: CircularProgressIndicator.adaptive(),
-                                );
-                              }
-                              //
-                              if (snapshot.hasError) {
-                                return const Center(
-                                  child: Text(
-                                    "Erreur de chargement ou accès refusé",
-                                  ),
-                                );
-                              }
-                              // todo: set filtered mission list
-
-                              return CustomScrollView(
-                                slivers: [
-                                  const SliverPadding(
-                                    padding: EdgeInsets.only(top: 16),
-                                  ),
-
-                                  /// Missions headline
-                                  SliverToBoxAdapter(
-                                    child: Center(
-                                      child: Text(
-                                        trans.isSearching == true
-                                            ? "Recherche en cours..."
-                                            : "Mes missions en cours",
-                                        style: Theme.of(
-                                          context,
-                                        ).textTheme.titleLarge,
-                                      ),
-                                    ),
-                                  ),
-                                  const SliverToBoxAdapter(
-                                    child: SizedBox(height: 16),
-                                  ),
-
-                                  /// Empty mission
-                                  if (trans.missions.isEmpty)
-                                    SliverFillRemaining(
-                                      child: _buildEmptyState(context),
-                                    )
-                                  else
-                                    SliverPadding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                      ),
-                                      sliver: SliverList(
-                                        delegate: SliverChildBuilderDelegate(
-                                          childCount: trans.missions.length,
-                                          (context, i) {
-                                            //
-                                            final mission = trans.missions[i];
-
-                                            //
-                                            return MissionContainerWidget(
-                                              onTap: () {
-                                                Navigator.of(context).push(
-                                                  MaterialPageRoute(
-                                                    builder: (context) =>
-                                                        MissionDetail(
-                                                          mission: mission,
-                                                        ),
-                                                  ),
-                                                );
-                                              },
-                                              missionIcon: mission.nom
-                                                  .substring(0, 1),
-                                              montantObjectif:
-                                                  mission.amountGoal,
-                                              missionName: mission.nom,
-                                              dateDebut: mission.dateDebut
-                                                  .toString(),
-                                              dateFin: mission.dateFin
-                                                  .toString(),
-                                              capitale: mission.capitale,
-                                              capitalInitial:
-                                                  mission.capitaleInitial,
-                                            );
-                                          },
-                                        ),
-                                      ),
-                                    ),
-                                  const SliverPadding(
-                                    padding: EdgeInsets.only(bottom: 100),
-                                  ),
-                                ],
-                              );
-                            },
-                          ),
-
-                          /// Missions clôturées
-                          SingleChildScrollView(
-                            padding: const EdgeInsets.fromLTRB(
-                              16.0,
-                              24,
-                              16.0,
-                              50,
-                            ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                /// Missions headline
-                                Text(
-                                  "Mes missions clôturées",
-                                  style: Theme.of(context).textTheme.titleLarge,
-                                ),
-                                const SizedBox(height: 16),
-
-                                /// Missions container
-                                trans.closedMissions.isEmpty
-                                    ? Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 70,
-                                        ),
-                                        width: double.infinity,
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                          color: Colors.transparent,
-                                        ),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                          children: [
-                                            SizedBox(
-                                              width:
-                                                  MediaQuery.sizeOf(
-                                                    context,
-                                                  ).width *
-                                                  0.3,
-                                              height: 100,
-                                              child: SvgPicture.asset(
-                                                "assets/empty.svg",
-                                              ),
-                                            ),
-                                            const SizedBox(height: 16),
-                                            Text(
-                                              "Pas de mission\nclôturée pour le moment !",
-                                              textAlign: TextAlign.center,
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .titleLarge!
-                                                  .copyWith(fontSize: 18),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              "Veuillez voir vos missions en cours",
-                                              textAlign: TextAlign.center,
-                                              style: Theme.of(
-                                                context,
-                                              ).textTheme.bodyMedium,
-                                            ),
-                                          ],
-                                        ),
-                                      )
-                                    : ListView.builder(
-                                        itemCount: trans.closedMissions.length,
-                                        shrinkWrap: true,
-                                        physics: const BouncingScrollPhysics(),
-                                        itemBuilder: (ctx, index) {
-                                          //
-                                          final mission =
-                                              trans.closedMissions[index];
-
-                                          //
-                                          return MissionContainerWidget(
-                                            onTap: () {
-                                              Navigator.of(context).push(
-                                                MaterialPageRoute(
-                                                  builder: (ctx) =>
-                                                      MissionDetail(
-                                                        mission: mission,
-                                                      ),
-                                                ),
-                                              );
-                                            },
-                                            missionIcon: mission.nom.substring(
-                                              0,
-                                              1,
-                                            ),
-                                            montantObjectif: mission.amountGoal,
-                                            missionName: mission.nom,
-                                            dateDebut: mission.dateDebut
-                                                .toString(),
-                                            dateFin: mission.dateFin.toString(),
-                                            capitale: mission.capitale,
-                                            capitalInitial:
-                                                mission.capitaleInitial,
-                                          );
-                                        },
-                                      ),
-                              ],
-                            ),
-                          ),
-                        ],
+                    Text(
+                      currentUser?.getStringValue("name").split(' ').first ??
+                          "Inconnu",
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
-
-                /// Bottom navigation bar
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Container(
-                    margin: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Theme.of(context).colorScheme.onSurface
-                          : Theme.of(context).colorScheme.primary,
-                      borderRadius: BorderRadius.circular(90),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white.withValues(alpha: 0.1)
-                              : Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 20,
-                          offset: const Offset(0, 5),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: List.generate(prov.icons.length, (i) {
-                        final icon = prov.icons[i];
-                        bool isSelected = i == prov.selectedIndex;
-                        return GestureDetector(
-                          onTap: () {
-                            if (i == prov.selectedIndex) return;
-                            prov.selectedIndex = i;
-                            switch (i) {
-                              case 0:
-                                break;
-                              case 1:
-                                prov.navigateWithFade(context, const Profile());
-                                break;
-                            }
-                          },
-                          child: Container(
-                            margin: i == 1
-                                ? null
-                                : const EdgeInsets.only(right: 8),
-                            height: 44,
-                            width: 44,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(90),
-                              color: isSelected
-                                  ? Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Theme.of(context).colorScheme.primary
-                                        : Theme.of(context).colorScheme.surface
-                                  : Theme.of(context).brightness ==
-                                        Brightness.dark
-                                  ? Theme.of(context).colorScheme.onSurface
-                                  : Theme.of(context).colorScheme.primary,
-                            ),
-                            child: Icon(
-                              icon,
-                              color: isSelected
-                                  ? Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Colors.white
-                                        : Theme.of(context).colorScheme.primary
-                                  : Theme.of(context).colorScheme.surface,
-                            ),
-                          ),
-                        );
-                      }),
-                    ),
-                  ),
-                ),
               ],
             ),
+            actions: [
+              GestureDetector(
+                onTap: () {
+                  _newMission(context);
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(right: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  height: 44,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(90),
+                    border: Border.all(
+                      width: 1,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white.withValues(alpha: 0.2)
+                          : Colors.grey.shade200,
+                    ),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white.withValues(alpha: 0.1)
+                        : Colors.white,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.add,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        "Mission",
+                        style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          /// Body content here
+          body: Stack(
+            children: [
+              Column(
+                children: [
+                  // Search bar for history
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: SearchBar(
+                      controller: searchMissionController,
+                      onChanged: (val) {
+                        if (_searchDebounce?.isActive ?? false) {
+                          _searchDebounce?.cancel();
+                        }
+                        _searchDebounce = Timer(
+                          const Duration(milliseconds: 500),
+                          () {
+                            setState(() {
+                              _initStreams();
+                            });
+                          },
+                        );
+                      },
+                      elevation: const WidgetStatePropertyAll(0),
+                      onTapOutside: (pointer) {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                      },
+                      leading: Icon(
+                        CupertinoIcons.search,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                      padding: const WidgetStatePropertyAll(
+                        EdgeInsets.only(left: 20),
+                      ),
+                      backgroundColor: WidgetStatePropertyAll(
+                        Theme.of(context).brightness == Brightness.dark
+                            ? Colors.black.withValues(alpha: 0.5)
+                            : Colors.grey.shade100,
+                      ),
+                      trailing: [
+                        IconButton(
+                          onPressed: () {
+                            setState(() {
+                              searchMissionController.clear();
+                            });
+                          },
+                          icon: Icon(
+                            CupertinoIcons.multiply,
+                            color: Colors.grey.shade300,
+                          ),
+                          splashColor: Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: 0.15),
+                        ),
+                      ],
+                      hintText: "Chercher une mission en cours",
+                      hintStyle: WidgetStatePropertyAll(
+                        Theme.of(context).textTheme.bodyLarge,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  /// Tab content
+                  Expanded(
+                    child:
+                        /// Missions en cours
+                        MissionsStreamWrapper(
+                          missionsStream: _missionsEnCoursStream,
+                          emptyState: _buildEmptyState(context),
+                          title: "Mes missions en cours",
+                        ),
+                  ),
+                ],
+              ),
+
+              /// Bottom navigation bar
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: Container(
+                  margin: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Theme.of(context).colorScheme.onSurface
+                        : Theme.of(context).colorScheme.primary,
+                    borderRadius: BorderRadius.circular(90),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white.withValues(alpha: 0.1)
+                            : Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 20,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: List.generate(prov.icons.length, (i) {
+                      final icon = prov.icons[i];
+                      bool isSelected = i == prov.selectedIndex;
+                      return GestureDetector(
+                        onTap: () {
+                          if (i == prov.selectedIndex) return;
+                          prov.selectedIndex = i;
+                          switch (i) {
+                            case 0:
+                              break;
+                            case 1:
+                              prov.navigateWithFade(
+                                context,
+                                const ClosedMissions(),
+                              );
+                              break;
+                            case 2:
+                              prov.navigateWithFade(context, const Profile());
+                              break;
+                          }
+                        },
+                        child: Container(
+                          margin: i == 2
+                              ? null
+                              : const EdgeInsets.only(right: 8),
+                          height: 44,
+                          width: 44,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(90),
+                            color: isSelected
+                                ? Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Theme.of(context).colorScheme.surface
+                                : Theme.of(context).brightness ==
+                                      Brightness.dark
+                                ? Theme.of(context).colorScheme.onSurface
+                                : Theme.of(context).colorScheme.primary,
+                          ),
+                          child: Icon(
+                            icon,
+                            color: isSelected
+                                ? Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.white
+                                      : Theme.of(context).colorScheme.primary
+                                : Theme.of(context).colorScheme.surface,
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+              ),
+            ],
           ),
         );
       },
     );
   }
+
+  ///
+
+  ///* EXTRACTED METHODS */
+
+  ///
 
   Container _buildEmptyState(BuildContext context) {
     return Container(
@@ -511,61 +339,63 @@ class _HomeState extends State<Home> {
         borderRadius: BorderRadius.circular(8),
         color: Colors.transparent,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: MediaQuery.sizeOf(context).width * 0.3,
-            height: 250,
-            child: SvgPicture.asset("assets/empty-mission.svg"),
-          ),
-          Text(
-            "Pas de mission\nen cours pour le moment !",
-            textAlign: TextAlign.center,
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge!.copyWith(fontSize: 18),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            "Créer une mission et suivez vos\nentrées et sorties",
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 24),
-          MaterialButton(
-            onPressed: () {
-              //
-              _newMission(context);
-              //
-            },
-            splashColor: Theme.of(
-              context,
-            ).colorScheme.primary.withValues(alpha: 0.15),
-            color: Colors.transparent,
-            elevation: 0,
-            height: 50,
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(90),
-              side: BorderSide(
-                width: 1,
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white.withValues(alpha: 0.2)
-                    : Colors.grey.shade300,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: MediaQuery.sizeOf(context).width * 0.3,
+              height: 250,
+              child: SvgPicture.asset("assets/empty-mission.svg"),
+            ),
+            Text(
+              "Pas de mission\nen cours pour le moment !",
+              textAlign: TextAlign.center,
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge!.copyWith(fontSize: 18),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              "Créer une mission et suivez vos\nentrées et sorties",
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 24),
+            MaterialButton(
+              onPressed: () {
+                //
+                _newMission(context);
+                //
+              },
+              splashColor: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.15),
+              color: Colors.transparent,
+              elevation: 0,
+              height: 50,
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(90),
+                side: BorderSide(
+                  width: 1,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white.withValues(alpha: 0.2)
+                      : Colors.grey.shade300,
+                ),
+              ),
+              child: Text(
+                "Ajouter une mission",
+                style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                  fontSize: 17,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Theme.of(context).colorScheme.primary,
+                ),
               ),
             ),
-            child: Text(
-              "Ajouter une mission",
-              style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                fontSize: 17,
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white
-                    : Theme.of(context).colorScheme.primary,
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

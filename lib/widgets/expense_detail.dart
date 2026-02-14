@@ -1,13 +1,16 @@
-import 'dart:io';
+import 'dart:developer';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:pocketbase/pocketbase.dart';
 import 'package:provider/provider.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:track_depenses/providers/share_files_providers.dart';
 import 'package:track_depenses/widgets/expense_receipt.dart';
+import 'package:track_depenses/widgets/new_entree.dart';
 
+import '../helpers/pocketBaseHelper/trx_db.dart';
 import '../models/transaction_model.dart';
 import '../providers/transaction_provider.dart';
 import 'new_expense.dart';
@@ -15,12 +18,14 @@ import 'new_expense.dart';
 class ExpenseDetail extends StatefulWidget {
   const ExpenseDetail({
     super.key,
-    required this.depense,
+    required this.trxMission,
     required this.mission,
+    required this.isEntree,
   });
 
-  final Depense depense;
+  final dynamic trxMission;
   final Mission mission;
+  final bool isEntree;
 
   @override
   State<ExpenseDetail> createState() => _ExpenseDetailState();
@@ -28,10 +33,31 @@ class ExpenseDetail extends StatefulWidget {
 
 class _ExpenseDetailState extends State<ExpenseDetail> {
   ///
-  final db = '';
-  final userId = '';
+  final trxDb = TrxDb.instance;
+  UnsubscribeFunc? subscribe;
 
-  // todo: set database and user id
+  @override
+  void initState() {
+    super.initState();
+    //
+    _subscribeToTrxChange();
+  }
+
+  void _subscribeToTrxChange() async {
+    subscribe = await trxDb.pb
+        .collection(widget.isEntree ? "entrees" : "depenses")
+        .subscribe(widget.trxMission.id, (e) {
+          if (mounted) {
+            setState(() {});
+          }
+        });
+  }
+
+  @override
+  void dispose() {
+    subscribe?.call();
+    super.dispose();
+  }
 
   ///
   @override
@@ -56,108 +82,60 @@ class _ExpenseDetailState extends State<ExpenseDetail> {
       );
     }
 
-    // Delete depense dialog
-    Future<void> deleteDepenseDialog(
-      BuildContext context,
-      Depense depense,
-    ) async {
-      //
-      final confirm = await showDialog<bool>(
-        useSafeArea: true,
-        context: context,
-        builder: (context) => AlertDialog(
-          shape: ContinuousRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 30,
-            vertical: 30,
-          ),
-          backgroundColor: Theme.of(context).brightness == Brightness.dark
-              ? const Color(0xff11181C)
-              : Colors.white,
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text("🗑️", style: Theme.of(context).textTheme.headlineLarge),
-              const SizedBox(height: 16),
-              Text(
-                "Êtes-vous sûr de vouloir supprimer cette dépense ?",
-                softWrap: true,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-            ],
-          ),
-          actions: [
-            MaterialButton(
-              onPressed: () => Navigator.pop(context, false),
-              minWidth: MediaQuery.sizeOf(context).width * 0.3,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(80),
-              ),
-              elevation: 0,
-              color: Theme.of(context).colorScheme.surface,
-              child: Text(
-                "Annuler",
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-            ),
-            MaterialButton(
-              onPressed: () => Navigator.pop(context, true),
-              minWidth: MediaQuery.sizeOf(context).width * 0.3,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(80),
-              ),
-              elevation: 0,
-              color: Theme.of(context).colorScheme.primary,
-              child: Text(
-                "Supprimer",
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onPrimary,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-      //
-      if (confirm == true) {
-        if (!context.mounted) return;
-        final prov = Provider.of<TransactionProvider>(context, listen: false);
-        Navigator.of(context).pop();
-        //
-        prov.removeDepense(widget.mission, depense);
-        //
-        prov.clearControllers();
-        //
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text("🗑️ • Dépense supprimée avec succès"),
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(80),
-            ),
-          ),
-        );
-      }
-    }
-
     final shareProv = Provider.of<ShareFilesProvider>(context, listen: false);
+    final prov = Provider.of<TransactionProvider>(context, listen: false);
 
     ///
 
-    return Consumer<TransactionProvider>(
-      builder: (_, prov, _) {
+    return StreamBuilder<List<dynamic>>(
+      stream: trxDb.fetchEntreesAndDepensesOnPb(widget.mission.id ?? '', ''),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator.adaptive()),
+          );
+        }
+
+        //
+
+        if (snapshot.hasError) {
+          return const Scaffold(
+            body: Center(
+              child: Text(
+                "Une erreur s'est produite lors du chargement des données.",
+              ),
+            ),
+          );
+        }
+
         ///
+
+        final transactions = snapshot.data ?? [];
+
+        dynamic currentTrx;
+
+        if (widget.isEntree) {
+          currentTrx = transactions.whereType<Entree>().firstWhere(
+            (e) => e.id == widget.trxMission.id,
+            orElse: () => widget.trxMission,
+          );
+        } else {
+          currentTrx = transactions.whereType<Depense>().firstWhere(
+            (d) => d.id == widget.trxMission.id,
+            orElse: () => widget.trxMission,
+          );
+        }
+
+        final expense = currentTrx is Depense ? currentTrx : null;
+        final entree = currentTrx is Entree ? currentTrx : null;
         final currentMission = widget.mission;
-        final expense = widget.depense;
 
         ///
         return Scaffold(
           appBar: AppBar(
-            title: const Text("Détails de la dépense"),
+            title: Text(
+              widget.isEntree ? "Détails de l'entrée" : "Détails de la dépense",
+            ),
             centerTitle: false,
             actionsPadding: const EdgeInsets.only(right: 8),
             actions: [
@@ -212,17 +190,28 @@ class _ExpenseDetailState extends State<ExpenseDetail> {
                                         Theme.of(context).brightness ==
                                             Brightness.dark
                                         ? Colors.white.withValues(alpha: 0.15)
+                                        : widget.isEntree
+                                        ? Theme.of(context)
+                                              .colorScheme
+                                              .secondary
+                                              .withValues(alpha: 0.15)
                                         : Theme.of(context).colorScheme.primary
                                               .withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(80),
                                   ),
                                   child: Icon(
-                                    CupertinoIcons.arrow_down_circle,
+                                    widget.isEntree
+                                        ? CupertinoIcons.arrow_up_circle
+                                        : CupertinoIcons.arrow_down_circle,
                                     size: 32,
                                     color:
                                         Theme.of(context).brightness ==
                                             Brightness.dark
                                         ? Colors.white
+                                        : widget.isEntree
+                                        ? Theme.of(
+                                            context,
+                                          ).colorScheme.secondary
                                         : Theme.of(context).colorScheme.primary,
                                   ),
                                 ),
@@ -233,14 +222,16 @@ class _ExpenseDetailState extends State<ExpenseDetail> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        "Titre de la dépense",
+                                        widget.isEntree
+                                            ? "Titre de l'entrée"
+                                            : "Titre de la dépense",
                                         softWrap: true,
                                         style: Theme.of(
                                           context,
                                         ).textTheme.bodyLarge,
                                       ),
                                       Text(
-                                        expense.description,
+                                        currentTrx.description,
                                         softWrap: true,
                                         style: Theme.of(context)
                                             .textTheme
@@ -287,7 +278,7 @@ class _ExpenseDetailState extends State<ExpenseDetail> {
                                       ).textTheme.bodyLarge,
                                     ),
                                     Text(
-                                      "Le ${DateFormat("dd/MM/yyyy").format(expense.date)}",
+                                      "Le ${DateFormat("dd/MM/yyyy").format(currentTrx.createdAt ?? DateTime.now())}",
                                       style: Theme.of(context)
                                           .textTheme
                                           .bodyLarge!
@@ -315,7 +306,9 @@ class _ExpenseDetailState extends State<ExpenseDetail> {
                                       ).textTheme.bodyLarge,
                                     ),
                                     Text(
-                                      "- ${currencyFormatter.format(expense.montant)}",
+                                      widget.isEntree
+                                          ? "+ ${currencyFormatter.format(entree?.montant ?? 0.0)}"
+                                          : "- ${currencyFormatter.format(expense?.montant ?? 0.0)}",
                                       style: Theme.of(context)
                                           .textTheme
                                           .bodyLarge!
@@ -325,9 +318,9 @@ class _ExpenseDetailState extends State<ExpenseDetail> {
                                                 Theme.of(context).brightness ==
                                                     Brightness.dark
                                                 ? Colors.white
-                                                : Theme.of(
-                                                    context,
-                                                  ).colorScheme.primary,
+                                                : widget.isEntree
+                                                ? CupertinoColors.systemGreen
+                                                : Colors.red,
                                           ),
                                     ),
                                   ],
@@ -345,7 +338,7 @@ class _ExpenseDetailState extends State<ExpenseDetail> {
                                       ).textTheme.bodyLarge,
                                     ),
                                     Text(
-                                      expense.categorie,
+                                      currentTrx.categorie,
                                       style: Theme.of(context)
                                           .textTheme
                                           .bodyLarge!
@@ -402,8 +395,8 @@ class _ExpenseDetailState extends State<ExpenseDetail> {
                             ),
                           ),
                           child:
-                              (expense.justificatif == null ||
-                                  expense.justificatif!.isEmpty)
+                              (currentTrx.justificatif == null ||
+                                  currentTrx.justificatif!.isEmpty)
                               ? Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
@@ -426,9 +419,41 @@ class _ExpenseDetailState extends State<ExpenseDetail> {
                                 )
                               : ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
-                                  child: Image.file(
-                                    File(expense.justificatif!.toString()),
-                                    fit: BoxFit.contain,
+                                  child: Builder(
+                                    builder: (context) {
+                                      //
+                                      ///* http://127.0.0.1:8090/api/files/COLLECTION_ID_OR_NAME/RECORD_ID/FILENAME */
+                                      //
+                                      final baseUrl = trxDb.pb.baseURL;
+                                      final collectionName = widget.isEntree
+                                          ? "entrees"
+                                          : "depenses";
+                                      final recordId = currentTrx.id;
+                                      final fileName = currentTrx.justificatif;
+                                      //
+                                      final imageUrl =
+                                          "$baseUrl/api/files/$collectionName/$recordId/$fileName";
+                                      log("Path justificatif: $imageUrl");
+                                      //
+                                      return Image.network(
+                                        imageUrl,
+                                        headers: const {
+                                          "ngrok-skip-browser-warning": "1",
+                                        },
+                                        loadingBuilder:
+                                            (
+                                              context,
+                                              child,
+                                              loadingProgress,
+                                            ) => loadingProgress == null
+                                            ? child
+                                            : const CircularProgressIndicator.adaptive(),
+                                        errorBuilder:
+                                            (context, error, stackTrace) =>
+                                                const Icon(Icons.broken_image),
+                                        fit: BoxFit.cover,
+                                      );
+                                    },
                                   ),
                                 ),
                         ),
@@ -442,8 +467,12 @@ class _ExpenseDetailState extends State<ExpenseDetail> {
                           Expanded(
                             child: MaterialButton(
                               onPressed: () async {
-                                // todo: delete expense
-                                await deleteDepenseDialog(context, expense);
+                                // todo: delete transaction
+                                await prov.deleteTrxDialog(
+                                  context,
+                                  currentTrx,
+                                  widget.isEntree,
+                                );
                                 //
                               },
                               shape: RoundedRectangleBorder(
@@ -457,10 +486,10 @@ class _ExpenseDetailState extends State<ExpenseDetail> {
                                       Brightness.dark
                                   ? Colors.white.withValues(alpha: 0.1)
                                   : Colors.white,
-                              child: Text(
+                              child: const Text(
                                 "Supprimer",
                                 style: TextStyle(
-                                  color: Theme.of(context).colorScheme.error,
+                                  color: Colors.red,
                                 ),
                               ),
                             ),
@@ -469,15 +498,27 @@ class _ExpenseDetailState extends State<ExpenseDetail> {
                           Expanded(
                             child: MaterialButton(
                               onPressed: () {
-                                // todo: edit expense
-                                showBottomSheet(
-                                  context,
-                                  NewExpense(
-                                    mission: currentMission,
-                                    depenseToEdit: expense,
-                                  ),
-                                  true,
-                                );
+                                if (widget.isEntree) {
+                                  showBottomSheet(
+                                    context,
+                                    NewEntree(
+                                      mission: currentMission,
+                                      entreeToEdit: entree,
+                                    ),
+                                    true,
+                                  );
+                                }
+                                //
+                                if (!widget.isEntree) {
+                                  showBottomSheet(
+                                    context,
+                                    NewExpense(
+                                      mission: currentMission,
+                                      depenseToEdit: expense,
+                                    ),
+                                    true,
+                                  );
+                                }
                               },
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(80),
@@ -510,7 +551,7 @@ class _ExpenseDetailState extends State<ExpenseDetail> {
                   controller: shareProv.screenshotController,
                   child: ExpenseReceipt(
                     mission: currentMission,
-                    expense: expense,
+                    trx: currentTrx,
                   ),
                 ),
               ),

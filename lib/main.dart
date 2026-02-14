@@ -7,9 +7,11 @@ import 'package:track_depenses/helpers/pocketBaseHelper/pocketbase_db.dart';
 import 'package:track_depenses/pages/authPages/login.dart';
 import 'package:track_depenses/pages/authPages/login_signup.dart';
 import 'package:track_depenses/pages/authPages/signup.dart';
+import 'package:track_depenses/pages/closed_missions.dart';
 import 'package:track_depenses/pages/home.dart';
 import 'package:track_depenses/pages/profile.dart';
 import 'package:track_depenses/pages/splashOnboarding/splash.dart';
+import 'package:track_depenses/pages/support_page.dart';
 import 'package:track_depenses/providers/auth_provider.dart';
 import 'package:track_depenses/providers/onboarding_provider.dart';
 import 'package:track_depenses/providers/reset_pwd_provider.dart';
@@ -78,6 +80,8 @@ class TrackDepenses extends StatelessWidget {
               //
               "/home": (context) => const Home(),
               "/profile": (context) => const Profile(),
+              "/closedMissions": (context) => const ClosedMissions(),
+              "/support": (context) => const SupportPage(),
             },
           );
         },

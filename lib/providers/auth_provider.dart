@@ -6,11 +6,11 @@ import 'package:track_depenses/helpers/pocketBaseHelper/pocketbase_db.dart';
 import '../models/user_model.dart';
 
 abstract class AuthenticationProvider with ChangeNotifier {
-
   //
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final pb = PocketBaseDb.instance;
+
   //
   bool passwordObscure = true;
   bool confirmPasswordObscure = true;
@@ -143,40 +143,6 @@ class LoginProvider extends AuthenticationProvider {
       } finally {}
     }
   }
-
-  // Login with Google
-  Future<void> loginWithGoogle(BuildContext context) async {
-    try {
-      _isLoading = true;
-      notifyListeners();
-      //
-      // todo: get user credential
-      //
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            "🎊✅🎉 • Vous êtes connecté !",
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium!.copyWith(color: Colors.white),
-          ),
-          backgroundColor: Theme.of(context).colorScheme.primary,
-          behavior: SnackBarBehavior.floating,
-          shape: const StadiumBorder(),
-        ),
-      );
-      //
-      if (!context.mounted) return;
-      Navigator.pushReplacementNamed(context, "/authGate");
-      //
-    } catch (e) {
-      throw Exception(e);
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
 }
 
 /// Signup provider
@@ -237,33 +203,6 @@ class SignupProvider extends AuthenticationProvider {
         _isLoading = false;
         notifyListeners();
       }
-    }
-  }
-
-  // Signup with Google
-  Future<void> signupWithGoogle(BuildContext context) async {
-    try {
-      _isLoading = true;
-      notifyListeners();
-      //
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text("🎊✅🎉 • Vous êtes connecté !"),
-          backgroundColor: Theme.of(context).colorScheme.primary,
-          behavior: SnackBarBehavior.floating,
-          shape: const StadiumBorder(),
-        ),
-      );
-      //
-      if (!context.mounted) return;
-      Navigator.pushReplacementNamed(context, "/authGate");
-      //
-    } catch (e) {
-      throw Exception(e);
-    } finally {
-      _isLoading = false;
-      notifyListeners();
     }
   }
 

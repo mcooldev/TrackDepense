@@ -29,7 +29,7 @@ class MissionCategoryWidget extends StatelessWidget {
                       : Theme.of(context).colorScheme.secondary
                 : Theme.of(context).brightness == Brightness.dark
                 ? Colors.white.withValues(alpha: 0.15)
-                : Theme.of(context).colorScheme.surface,
+                : Colors.grey.shade100,
             child: Text(
               missionTypeIcon,
               style: Theme.of(context).textTheme.titleLarge,

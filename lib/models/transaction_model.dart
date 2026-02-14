@@ -1,6 +1,4 @@
-import 'package:uuid/uuid.dart';
-
-const uuid = Uuid();
+import 'package:pocketbase/pocketbase.dart';
 
 enum MissionType {
   transport,
@@ -38,21 +36,23 @@ final Map<MissionType, String> missionTypeName = {
 /// Mission model
 class Mission {
   Mission({
+    this.id,
     required this.nom,
+    required this.user,
     required this.capitaleInitial,
     required this.capitale,
-    required this.entrees,
-    required this.depenses,
+    this.entrees = const [],
+    this.depenses = const [],
     required this.dateDebut,
     required this.dateFin,
     this.createdAt,
     this.isClosed = false,
     this.isAmountGoal = false,
     this.amountGoal,
-    String? id,
-  }) : id = id ?? uuid.v4();
-  String id;
-  String nom;
+  });
+
+  String? id;
+  String nom, user;
   double capitaleInitial;
   double capitale;
   List<Entree> entrees;
@@ -64,93 +64,83 @@ class Mission {
   double? amountGoal;
   DateTime? createdAt;
 
+  /// Mission fromRecord
+  factory Mission.fromRecord(RecordModel record) {
+    //
+    final entreesData = record.getListValue<RecordModel>("expand.entrees(missionId)", []);
+    final depensesData = record.getListValue<RecordModel>("expand.depenses(missionId)", []);
+
+    final entreeList = entreesData.map((r) => Entree.fromRecord(r)).toList();
+    final depenseList = depensesData.map((r) => Depense.fromRecord(r)).toList();
+    //
+    return Mission(
+      id: record.id,
+      user: record.getStringValue("user"),
+      nom: record.getStringValue("nom"),
+      capitaleInitial: record.getDoubleValue("capitaleInitial"),
+      capitale: record.getDoubleValue("capitale"),
+      dateDebut: DateTime.parse(record.getStringValue("dateDebut")),
+      dateFin: DateTime.parse(record.getStringValue("dateFin")),
+      entrees: entreeList,
+      depenses: depenseList,
+      isClosed: record.getBoolValue("isClosed"),
+      isAmountGoal: record.getBoolValue("isAmountGoal"),
+      amountGoal: record.getDoubleValue("amountGoal"),
+      createdAt: DateTime.parse(record.getStringValue("created")),
+    );
+  }
+
   /// Mission toMap
   Map<String, dynamic> toMap() => {
     "nom": nom,
+    "user": user,
     "capitaleInitial": capitaleInitial,
     "capitale": capitale,
-    "entrees": entrees.map((e) => e.toMap()).toList(),
-    "depenses": depenses.map((e) => e.toMap()).toList(),
-    "dateDebut": dateDebut,
-    "dateFin": dateFin,
+    "dateDebut": dateDebut.toString(),
+    "dateFin": dateFin.toString(),
     "isClosed": isClosed,
     "isAmountGoal": isAmountGoal,
     "amountGoal": amountGoal,
   };
-
-  /// toMap without entrees and depenses
-  Map<String, dynamic> toMapWithoutList() => {
-    "nom": nom,
-    "capitaleInitial": capitaleInitial,
-    "capitale": capitale,
-    "dateDebut": dateDebut,
-    "dateFin": dateFin,
-    "isClosed": isClosed,
-    "isAmountGoal": isAmountGoal,
-    "amountGoal": amountGoal,
-    "createdAt": createdAt,
-  };
-
-  /// Copy with mission
-  Mission copyWith({
-    String? id,
-    String? nom,
-    double? capitaleInitial,
-    double? capitale,
-    List<Entree>? entrees,
-    List<Depense>? depenses,
-    DateTime? dateDebut,
-    DateTime? createdAt,
-    DateTime? dateFin,
-    bool? isClosed,
-    bool? isAmountGoal,
-    double? amountGoal,
-  }) {
-    return Mission(
-      id: id ?? this.id,
-      nom: nom ?? this.nom,
-      capitaleInitial: capitaleInitial ?? this.capitaleInitial,
-      capitale: capitale ?? this.capitale,
-      entrees: entrees ?? this.entrees,
-      depenses: depenses ?? this.depenses,
-      dateDebut: dateDebut ?? this.dateDebut,
-      createdAt: createdAt ?? this.createdAt,
-      dateFin: dateFin ?? this.dateFin,
-      isClosed: isClosed ?? this.isClosed,
-      isAmountGoal: isAmountGoal ?? this.isAmountGoal,
-      amountGoal: amountGoal ?? this.amountGoal,
-    );
-  }
 }
 
 /// Entree model
 class Entree {
   Entree({
+    this.id,
     required this.montant,
     required this.description,
-    required this.date,
-    String? id,
-  }) : id = id ?? uuid.v4();
-  String id;
+    this.createdAt,
+    this.justificatif,
+    required this.categorie,
+    required this.missionId,
+  });
+
+  String? id;
+  String? justificatif;
   double montant;
-  String description;
-  DateTime date;
+  String description, categorie;
+  DateTime? createdAt;
+  String missionId;
 
   /// Entree toMap
   Map<String, dynamic> toMap() => {
+    "categorie": categorie,
     "montant": montant,
     "description": description,
-    "date": date,
+    "missionId": missionId,
   };
 
-  /// Entree fromMap
-  factory Entree.fromMap(Map<String, dynamic> map) => Entree(
-    montant: (map['montant'] ?? 0.0) as double,
-    description: map['description'] as String,
-    date: map['date'] != null ? map['date'] as DateTime : DateTime.now(),
+  /// Entree fromRecord
+  factory Entree.fromRecord(RecordModel record) => Entree(
+    id: record.id,
+    categorie: record.getStringValue("categorie"),
+    montant: record.getDoubleValue("montant"),
+    description: record.getStringValue("description"),
+    createdAt: DateTime.parse(record.getStringValue("created")),
+    missionId: record.getStringValue("missionId"),
+    justificatif: record.getStringValue("justificatif"),
   );
-
-
 }
 
 /// Depense model
@@ -159,31 +149,36 @@ class Depense {
     required this.montant,
     required this.categorie,
     required this.description,
-    required this.date,
+    this.createdAt,
+    required this.missionId,
     this.justificatif,
-    String? id,
-  }) : id = id ?? uuid.v4();
-  String id;
+    this.id,
+  });
+
+  String? id;
   double montant;
   String categorie;
   String description;
-  DateTime date;
   String? justificatif;
+  DateTime? createdAt;
+  String missionId;
 
   /// Depense toMap
   Map<String, dynamic> toMap() => {
     "montant": montant,
     "categorie": categorie,
     "description": description,
-    "date": date,
-    "justificatif": justificatif,
+    "missionId": missionId,
   };
 
   /// Depense fromMap
-  factory Depense.fromMap(Map<String, dynamic> map) => Depense(
-    montant: (map['montant'] ?? 0.0) as double,
-    categorie: map['categorie'] as String,
-    description: map['description'] as String,
-    date: map['date'] != null ? map['date'] as DateTime : DateTime.now(),
+  factory Depense.fromRecord(RecordModel record) => Depense(
+    id: record.id,
+    montant: record.getDoubleValue("montant"),
+    categorie: record.getStringValue("categorie"),
+    description: record.getStringValue("description"),
+    createdAt: DateTime.parse(record.getStringValue("created")),
+    missionId: record.getStringValue("missionId"),
+    justificatif: record.getStringValue("justificatif"),
   );
 }

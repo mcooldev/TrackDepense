@@ -8,6 +8,7 @@ class AddEntryWidget extends StatelessWidget {
     required this.iconColor,
     required this.textColor,
     required this.containerBg,
+    this.borderColor,
     required this.textEntry,
   });
 
@@ -16,6 +17,7 @@ class AddEntryWidget extends StatelessWidget {
   final Color iconColor;
   final Color containerBg;
   final Color textColor;
+  final Color? borderColor;
   final String textEntry;
 
   @override
@@ -27,6 +29,7 @@ class AddEntryWidget extends StatelessWidget {
         height: 50,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(80),
+          border: Border.all(width: 1, color: borderColor ?? Colors.transparent),
           color: Theme.of(context).brightness == Brightness.dark
               ? Colors.white.withValues(alpha: 0.1)
               : containerBg,

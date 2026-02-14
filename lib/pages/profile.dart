@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:track_depenses/helpers/pocketBaseHelper/pocketbase_db.dart';
+import 'package:track_depenses/pages/closed_missions.dart';
 
 import '../providers/theme_provider.dart';
 import '../providers/user_provider.dart';
@@ -15,12 +16,24 @@ class Profile extends StatefulWidget {
 }
 
 class _ProfileState extends State<Profile> {
+  ///
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final prov = Provider.of<UserProvider>(context, listen: false);
+      prov.setSelectedIndex(2);
+    });
+  }
+
+  ///
   @override
   Widget build(BuildContext context) {
     ///
     final pb = PocketBaseDb.instance.pb;
     final currentUser = pb.authStore.record;
     final themeProv = Provider.of<ThemeProvider>(context, listen: false);
+    final theme = Theme.of(context);
 
     ///
     return Consumer<UserProvider>(
@@ -29,6 +42,7 @@ class _ProfileState extends State<Profile> {
           appBar: AppBar(
             title: const Text("Mon profil"),
             centerTitle: false,
+            automaticallyImplyLeading: false,
             actions: [
               Container(
                 margin: const EdgeInsets.only(right: 16),
@@ -47,13 +61,14 @@ class _ProfileState extends State<Profile> {
                       : Colors.white,
                 ),
                 child: TextButton(
-                  onPressed: () async {
+                  onPressed: () {
                     prov.resetIndex();
                     //
                     PocketBaseDb.instance.pb.authStore.clear();
                     //
                     if (!context.mounted) return;
                     Navigator.pushReplacementNamed(context, "/authGate");
+                    //
                   },
                   child: Text(
                     "Se déconnecter",
@@ -71,7 +86,7 @@ class _ProfileState extends State<Profile> {
             children: [
               /// Pages
               Padding(
-                padding: const EdgeInsets.fromLTRB(16.0, 24, 16.0, 50),
+                padding: const EdgeInsets.fromLTRB(16.0, 24, 16.0, 120),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -120,11 +135,18 @@ class _ProfileState extends State<Profile> {
                           // Reset password
                           ListTile(
                             onTap: () async {
-                              await PocketBaseDb.instance.resetPassword(context).then((_){
-                                if (!context.mounted) return;
-                                Navigator.pushNamed(context, "/resetPassword");
-                              });
-                              //
+                              await PocketBaseDb.instance
+                                  .resetPassword(
+                                    context,
+                                    currentUser?.getStringValue("email"),
+                                  )
+                                  .then((_) {
+                                    if (!context.mounted) return;
+                                    Navigator.pushNamed(
+                                      context,
+                                      "/resetPassword",
+                                    );
+                                  });
                             },
                             leading: Icon(
                               CupertinoIcons.lock,
@@ -153,14 +175,14 @@ class _ProfileState extends State<Profile> {
                           // Contact support
                           ListTile(
                             onTap: () {
-                              // todo: contact support
+                              Navigator.pushNamed(context, "/support");
                             },
                             leading: Icon(
-                              CupertinoIcons.phone,
+                              CupertinoIcons.envelope,
                               color: Theme.of(context).colorScheme.onSurface,
                             ),
                             title: Text(
-                              "Demander de l'aide",
+                              "Contacter le support",
                               style: Theme.of(context).textTheme.bodyLarge!
                                   .copyWith(
                                     color: Theme.of(
@@ -213,6 +235,14 @@ class _ProfileState extends State<Profile> {
                         ],
                       ),
                     ),
+                    const Spacer(),
+                    Text(
+                      "© Track Depenses. Tous droits réservés",
+                      style: theme.textTheme.labelSmall!.copyWith(
+                        color: Colors.grey.shade500,
+                        fontSize: 14,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -252,11 +282,17 @@ class _ProfileState extends State<Profile> {
                               prov.navigateWithFade(context, const Home());
                               break;
                             case 1:
+                              prov.navigateWithFade(
+                                context,
+                                const ClosedMissions(),
+                              );
+                              break;
+                            case 2:
                               break;
                           }
                         },
                         child: Container(
-                          margin: i == 1
+                          margin: i == 2
                               ? null
                               : const EdgeInsets.only(right: 8),
                           height: 44,

@@ -1,68 +1,550 @@
 import 'dart:async';
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
 
+import '../helpers/pocketBaseHelper/pocketbase_db.dart';
+import '../helpers/pocketBaseHelper/trx_db.dart';
 import '../models/transaction_model.dart';
-
-enum FilterType { mixed, entrees, depenses }
 
 class TransactionProvider with ChangeNotifier {
   ///
   final List<Mission> _missions = [];
 
   List<Mission> get missions => [..._missions];
-  final List<Depense> _depenses = [];
 
-  List<Depense> get depenses => [..._depenses];
-  final List<Entree> _entrees = [];
+  /// Trx to pocketbase database
 
-  List<Entree> get entrees => [..._entrees];
+  bool _isLoading = false;
 
-  void fetchMissions() {
-  }
+  bool get isLoading => _isLoading;
+  final pb = PocketBaseDb.instance.pb;
 
-  void fetchEntree(String missionId) {
-  }
-
-  void fetchDepense(String missionId) {
+  // Add mission to pocketbase
+  Future<void> addMissionToPb(Mission mission) async {
+    if (isLoading) return;
     //
-  }
-
-  Stream<List<dynamic>> allTxn = Stream.value([]);
-
-  Stream<List<dynamic>> fetchAllTxn(String missionId) {
-    return Stream.value([]);
-
-  }
-
-  /// Add item to the list
-  void add<T>(T item) {
-    if (item is Mission) {
-      _missions.add(item);
-    } else if (item is Depense) {
-      _depenses.add(item);
-    } else if (item is Entree) {
-      _entrees.add(item);
-    }
+    _isLoading = true;
     notifyListeners();
-  }
-
-  /// Remove item from the list
-  void removeMission(Mission mission) async {
-    final missionIndex = _missions.indexWhere((m) => m.id == mission.id);
-    final closedMissionIndex = _closedMissions.indexWhere(
-      (m) => m.id == mission.id,
-    );
-    if (missionIndex != -1) {
-      _missions.removeAt(missionIndex);
+    //
+    try {
+      final record = await pb
+          .collection("missions")
+          .create(body: mission.toMap());
+      //
+      await pb
+          .collection('entrees')
+          .create(
+            body: {
+              'missionId': record.id,
+              'categorie': 'Budget_Initial',
+              'montant': mission.capitaleInitial,
+              'description': "Budget initial",
+            },
+          );
+      //
+      log("✅ Mission ajoutée avec succès");
+    } catch (e) {
+      log("Erreur lors de l'ajout de la mission : $e");
+      rethrow;
+    } finally {
+      _isLoading = false;
       notifyListeners();
     }
+  }
+
+  // Add entree to pocketbase
+  Future<void> addEntreeToPb({
+    required Entree entree,
+    required String missionId,
+  }) async {
+    _isLoading = true;
+    notifyListeners();
     //
-    if (closedMissionIndex != -1) {
-      _closedMissions.removeAt(closedMissionIndex);
+    try {
+      await pb
+          .collection("entrees")
+          .create(
+            body: entree.toMap(),
+            expand: 'missionId',
+            files: _imageJustificatif == null
+                ? []
+                : [
+                    await http.MultipartFile.fromPath(
+                      'justificatif',
+                      _imageJustificatif!.path,
+                    ),
+                  ],
+          );
+      //
+      await _updateMissionCapital(missionId);
+      //
+    } catch (e) {
+      log("Error: $e");
+      rethrow;
+    } finally {
+      _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  // Add depense to pocketbase
+  Future<void> addDepenseToPb({
+    required Depense depense,
+    required String missionId,
+  }) async {
+    _isLoading = true;
+    notifyListeners();
+    //
+    try {
+      //
+      await pb
+          .collection("depenses")
+          .create(
+            expand: 'missionId',
+            body: depense.toMap(),
+            files: _imageJustificatif == null
+                ? []
+                : [
+                    await http.MultipartFile.fromPath(
+                      'justificatif',
+                      _imageJustificatif!.path,
+                    ),
+                  ],
+          );
+      //
+      await _updateMissionCapital(missionId);
+      //
+    } catch (e) {
+      log("Error: $e");
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> updateMissionToPb({
+    required Mission mission,
+    Map<String, dynamic>? data,
+  }) async {
+    if (isLoading) return;
+    //
+    _isLoading = true;
+    notifyListeners();
+    //
+    try {
+      await pb
+          .collection('missions')
+          .update(mission.id!, body: data ?? mission.toMap());
+      //
+      final recordEntree = await pb
+          .collection("entrees")
+          .getFirstListItem(
+            "missionId = '${mission.id}' && categorie = 'Budget_Initial'",
+          );
+      await pb
+          .collection('entrees')
+          .update(recordEntree.id, body: {'montant': mission.capitaleInitial});
+      //
+      await _updateMissionCapital(mission.id!);
+      //
+      notifyListeners();
+      //
+      log("✅ Mission mise à jour avec succès");
+    } catch (e) {
+      log("Erreur lors de la mise à jour de la mission : $e");
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  //
+  Future<void> _updateMissionCapital(String missionId) async {
+    try {
+      //
+      final results = await Future.wait([
+        pb
+            .collection('entrees')
+            .getFullList(filter: 'missionId = "$missionId"'),
+        pb
+            .collection('depenses')
+            .getFullList(filter: 'missionId = "$missionId"'),
+      ]);
+      //
+      final entreeList = results[0];
+      final depenseList = results[1];
+      //
+      final totalEntrees = entreeList.fold<double>(
+        0,
+        (prev, current) => prev + current.getDoubleValue('montant'),
+      );
+      final totalDepenses = depenseList.fold<double>(
+        0,
+        (pre, current) => pre + current.getDoubleValue("montant"),
+      );
+      //
+      final newCapital = totalEntrees - totalDepenses;
+      //
+      await pb
+          .collection('missions')
+          .update(missionId, body: {'capitale': newCapital});
+      //
+      log("✅ Capital recalculé: $newCapital");
+      //
+    } catch (e) {
+      log("❌ Erreur de recalcul: $e");
+    }
+  }
+
+  //
+  Future<void> updateEntreeOnPb({
+    required String missionId,
+    required String entreeId,
+    required Map<String, dynamic> data,
+  }) async {
+    if (isLoading) return;
+    //
+    _isLoading = true;
+    notifyListeners();
+    //
+    try {
+      //
+      await pb
+          .collection("entrees")
+          .update(
+            entreeId,
+            body: data,
+            files: _imageJustificatif == null
+                ? []
+                : [
+                    await http.MultipartFile.fromPath(
+                      'justificatif',
+                      _imageJustificatif!.path,
+                    ),
+                  ],
+          );
+      //
+      await _updateMissionCapital(missionId);
+      //
+    } catch (e) {
+      log("Erreur lors de la mise à jour de l'entrée : $e");
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  //
+  Future<void> updateDepenseOnPb({
+    required String missionId,
+    required String depenseId,
+    required Map<String, dynamic> data,
+  }) async {
+    if (isLoading) return;
+    //
+    _isLoading = true;
+    notifyListeners();
+    //
+    try {
+      //
+      await pb
+          .collection("depenses")
+          .update(
+            depenseId,
+            body: data,
+            files: _imageJustificatif == null
+                ? []
+                : [
+                    await http.MultipartFile.fromPath(
+                      'justificatif',
+                      _imageJustificatif!.path,
+                    ),
+                  ],
+          );
+      //
+      await _updateMissionCapital(missionId);
+      //
+    } catch (e) {
+      log("Erreur lors de la mise à jour de la dépense : $e");
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Dialogs
+
+  Future<void> deleteMissionDialog(
+    BuildContext context,
+    Mission mission,
+  ) async {
+    //
+    final confirm = await showDialog<bool>(
+      useSafeArea: true,
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: ContinuousRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 30,
+          vertical: 30,
+        ),
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xff11181C)
+            : Colors.white,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text("🗑️", style: Theme.of(context).textTheme.headlineLarge),
+            const SizedBox(height: 16),
+            Text(
+              "Êtes-vous sûr de vouloir supprimer cette mission ?",
+              softWrap: true,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+          ],
+        ),
+        actions: [
+          MaterialButton(
+            onPressed: () => Navigator.pop(context, false),
+            minWidth: MediaQuery.sizeOf(context).width * 0.3,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(80),
+              side: BorderSide(width: 1, color: Colors.grey.shade200),
+            ),
+            elevation: 0,
+            color: Theme.of(context).colorScheme.surface,
+            child: Text(
+              "Annuler",
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+          MaterialButton(
+            onPressed: () => Navigator.pop(context, true),
+            minWidth: MediaQuery.sizeOf(context).width * 0.3,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(80),
+            ),
+            elevation: 0,
+            color: Theme.of(context).colorScheme.primary,
+            child: Text(
+              "Supprimer",
+              style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
+            ),
+          ),
+        ],
+      ),
+    );
+    //
+    if (confirm == true) {
+      if (!context.mounted) return;
+      //
+      if (mission.id == null) return;
+      TrxDb.instance.deleteMissionOnPb(mission.id!);
+      clearControllers();
+      //
+      if (!context.mounted) return;
+      Navigator.of(context).pop();
+      //
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("🗑️️ • Mission supprimée avec succès"),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          behavior: SnackBarBehavior.floating,
+          shape: const StadiumBorder(),
+        ),
+      );
+    }
+  }
+
+  Future<void> closeMissionDialog({
+    required BuildContext context,
+    required Mission mission,
+  }) async {
+    //
+    final confirm = await showDialog<bool>(
+      useSafeArea: true,
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: ContinuousRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 30,
+          vertical: 30,
+        ),
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xff11181C)
+            : Colors.white,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text("🗃️", style: Theme.of(context).textTheme.headlineLarge),
+            const SizedBox(height: 16),
+            Text(
+              "Êtes-vous sûr de vouloir clôturer cette mission ?",
+              softWrap: true,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+          ],
+        ),
+        actions: [
+          MaterialButton(
+            onPressed: () => Navigator.pop(context, false),
+            minWidth: MediaQuery.sizeOf(context).width * 0.3,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(80),
+              side: BorderSide(width: 1, color: Colors.grey.shade200),
+            ),
+            elevation: 0,
+            color: Theme.of(context).colorScheme.surface,
+            child: Text(
+              "Annuler",
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+          MaterialButton(
+            onPressed: () => Navigator.pop(context, true),
+            minWidth: MediaQuery.sizeOf(context).width * 0.3,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(80),
+            ),
+            elevation: 0,
+            color: Theme.of(context).colorScheme.primary,
+            child: Text(
+              "Clôturer",
+              style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
+            ),
+          ),
+        ],
+      ),
+    );
+    //
+    if (confirm == true) {
+      if (!context.mounted) return;
+      // todo: close mission method from pocketbase
+      await updateMissionToPb(mission: mission, data: {'isClosed': true});
+      clearControllers();
+      //
+      if (!context.mounted) return;
+      Navigator.of(context).pushReplacementNamed('/closedMissions');
+      //
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("🗃️ • Mission clôturée avec succès"),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          behavior: SnackBarBehavior.floating,
+          shape: const StadiumBorder(),
+        ),
+      );
+    }
+  }
+
+  // Delete depense dialog
+  Future<void> deleteTrxDialog(
+    BuildContext context,
+    dynamic trx,
+    bool isEntree,
+  ) async {
+    //
+    final confirm = await showDialog<bool>(
+      useSafeArea: true,
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: ContinuousRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 30,
+          vertical: 30,
+        ),
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xff11181C)
+            : Colors.white,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text("🗑️", style: Theme.of(context).textTheme.headlineLarge),
+            const SizedBox(height: 16),
+            Text(
+              isEntree
+                  ? "Êtes-vous sûr de vouloir supprimer cette entrée ?"
+                  : "Êtes-vous sûr de vouloir supprimer cette dépense ?",
+              softWrap: true,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+          ],
+        ),
+        actions: [
+          MaterialButton(
+            onPressed: () => Navigator.pop(context, false),
+            minWidth: MediaQuery.sizeOf(context).width * 0.3,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(80),
+              side: BorderSide(width: 1, color: Colors.grey.shade200),
+            ),
+            elevation: 0,
+            color: Theme.of(context).colorScheme.surface,
+            child: Text(
+              "Annuler",
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+          MaterialButton(
+            onPressed: () => Navigator.pop(context, true),
+            minWidth: MediaQuery.sizeOf(context).width * 0.3,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(80),
+            ),
+            elevation: 0,
+            color: Theme.of(context).colorScheme.primary,
+            child: Text(
+              "Supprimer",
+              style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
+            ),
+          ),
+        ],
+      ),
+    );
+    //
+    if (confirm == true) {
+      //
+      await TrxDb.instance.deleteTrxOnPb(trx.id, isEntree);
+      //
+      clearControllers();
+      await Future.wait([
+        _updateMissionCapital(trx.missionId),
+        Future.delayed(const Duration(milliseconds: 500)),
+      ]);
+      //
+      if (!context.mounted) return;
+      Navigator.of(context).pop();
+      //
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isEntree
+                ? "🗑️ • Entrée supprimée avec succès"
+                : "🗑️ • Dépense supprimée avec succès",
+          ),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          behavior: SnackBarBehavior.floating,
+          shape: const StadiumBorder(),
+        ),
+      );
+      //
     }
   }
 
@@ -70,122 +552,17 @@ class TransactionProvider with ChangeNotifier {
   final montanEntreetController = TextEditingController();
   final descriptionEntreeController = TextEditingController();
 
-  void addEntreeToMission(Mission missionId, Entree entree) {
-    final missionIndex = _missions.indexWhere((m) => m.id == missionId.id);
-    if (missionIndex != -1) {
-      _missions[missionIndex]
-        ..entrees.add(entree)
-        ..capitale += entree.montant;
-      notifyListeners();
-    }
-  }
-
-  void updateEntree(Mission missionId, Entree entreeToUpdate) {
-    final missionIndex = _missions.indexWhere((m) => m.id == missionId.id);
-    if (missionIndex != -1) {
-      //
-      final mission = _missions[missionIndex];
-      final entreeIndex = mission.entrees.indexWhere(
-        (e) => e.id == entreeToUpdate.id,
-      );
-      //
-      if (entreeIndex != -1) {
-        final oldAmount = mission.entrees[entreeIndex].montant;
-        //
-        _missions[missionIndex].capitale -= oldAmount;
-        _missions[missionIndex].capitale += entreeToUpdate.montant;
-        //
-        mission.entrees[entreeIndex] = entreeToUpdate;
-        notifyListeners();
-      }
-    }
-  }
-
-  void removeEntree(Mission missionId, Entree entree) {
-    final missionIndex = _missions.indexWhere((m) => m.id == missionId.id);
-    if (missionIndex != -1) {
-      _missions[missionIndex].entrees.removeWhere((e) => e.id == entree.id);
-      _missions[missionIndex].capitale -= entree.montant;
-      notifyListeners();
-    }
-  }
-
   /// Controllers for depense
   final montantDepenseController = TextEditingController();
   final descriptionDepenseController = TextEditingController();
-
-  void addDepenseToMission(Mission missionId, Depense depense) {
-    final missionIndex = _missions.indexWhere((m) => m.id == missionId.id);
-    if (missionIndex != -1) {
-      _missions[missionIndex]
-        ..depenses.add(depense)
-        ..capitale -= depense.montant;
-      notifyListeners();
-    }
-  }
-
-  void updateDepense(Mission missionId, Depense depenseToUpdate) {
-    final missionIndex = _missions.indexWhere((m) => m.id == missionId.id);
-    if (missionIndex != -1) {
-      //
-      final mission = _missions[missionIndex];
-      final depenseIndex = mission.depenses.indexWhere(
-        (d) => d.id == depenseToUpdate.id,
-      );
-      //
-      if (depenseIndex != -1) {
-        final oldAmount = mission.depenses[depenseIndex].montant;
-        //
-        mission.capitale += oldAmount;
-        mission.capitale -= depenseToUpdate.montant;
-        //
-        mission.depenses[depenseIndex] = depenseToUpdate;
-        //
-        notifyListeners();
-      }
-    }
-  }
-
-  void removeDepense(Mission missionId, Depense depense) {
-    final missionIndex = _missions.indexWhere((m) => m.id == missionId.id);
-    if (missionIndex != -1) {
-      _missions[missionIndex].depenses.removeWhere((d) => d.id == depense.id);
-      _missions[missionIndex].capitale += depense.montant;
-      notifyListeners();
-    }
-  }
-
-  Depense? findDepenseById(String depenseId) {
-    for (final mission in _missions) {
-      try {
-        return mission.depenses.firstWhere(
-          (element) => element.id == depenseId,
-        );
-      } catch (e) {
-        continue;
-      }
-    }
-    //
-    for (final closedMission in _closedMissions) {
-      try {
-        return closedMission.depenses.firstWhere(
-          (element) => element.id == depenseId,
-        );
-      } catch (e) {
-        continue;
-      }
-    }
-    //
-    return null;
-  }
 
   /// Controllers & date for mission
   final nomController = TextEditingController();
   final capitaleController = TextEditingController();
   final dateDebutController = TextEditingController();
   final dateFinController = TextEditingController();
-  DateTime dateDebut = DateTime.now();
-  DateTime dateFin = DateTime.now();
+  DateTime? dateDebut = DateTime.now();
+  DateTime? dateFin = DateTime.now();
 
   String _hintValueDebut = "";
   String _hintValueFin = "";
@@ -236,40 +613,6 @@ class TransactionProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  /// find mission by id
-  Mission? findMissionById({required String missionId}) {
-    //
-    for (final mission in _missions) {
-      if (mission.id == missionId) {
-        return mission;
-      }
-    }
-    //
-    for (final closedMission in _closedMissions) {
-      if (closedMission.id == missionId) {
-        return closedMission;
-      }
-    }
-    //
-    return null;
-  }
-
-  /// Sort list
-  FilterType _currentFilter = FilterType.mixed;
-
-  FilterType get currentFilter => _currentFilter;
-
-  void toggleFilter() {
-    if (_currentFilter == FilterType.mixed) {
-      _currentFilter = FilterType.entrees;
-    } else if (_currentFilter == FilterType.entrees) {
-      _currentFilter = FilterType.depenses;
-    } else {
-      _currentFilter = FilterType.mixed;
-    }
-    notifyListeners();
-  }
-
   /// Justificatif de la dépense
   File? _imageJustificatif;
 
@@ -280,10 +623,13 @@ class TransactionProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void pickImageJustificatif() async {
+  Future<void> pickImageJustificatifFromGallery() async {
     final picker = ImagePicker();
     final XFile? pickedImage = await picker.pickImage(
       source: ImageSource.gallery,
+      imageQuality: 70,
+      maxHeight: 1280,
+      maxWidth: 1280,
     );
     if (pickedImage != null) {
       _imageJustificatif = File(pickedImage.path);
@@ -291,94 +637,34 @@ class TransactionProvider with ChangeNotifier {
     }
   }
 
-  /// Clôturer une mission
-  final List<Mission> _closedMissions = [];
-
-  List<Mission> get closedMissions =>
-      [..._closedMissions]..sort((a, b) => b.dateFin.compareTo(a.dateFin));
-
-  void closeMission(Mission mission) {
-    final missionIndex = _missions.indexWhere((m) => m.id == mission.id);
-    if (missionIndex != -1) {
-      final closedMission = _missions[missionIndex].copyWith(
-        isClosed: true,
-        dateFin: DateTime.now(),
-      );
-      //
-      _closedMissions.add(closedMission);
-      _missions.removeAt(missionIndex);
+  Future<void> pickImageJustificatifFromCamera() async {
+    final picker = ImagePicker();
+    final XFile? pickedImage = await picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 70,
+      maxHeight: 1280,
+      maxWidth: 1280,
+    );
+    if (pickedImage != null) {
+      _imageJustificatif = File(pickedImage.path);
       notifyListeners();
     }
   }
 
-  /// Filter transaction by name
-  final TextEditingController _searchController = TextEditingController();
-  final TextEditingController _searchMissionController =
-      TextEditingController();
-
-  TextEditingController get searchController => _searchController;
-
-  TextEditingController get searchMissionController => _searchMissionController;
-
-  List<Mission> _filteredOnGoingMission = [];
-
-  List<Mission> get filteredOnGoingMission => _filteredOnGoingMission.isEmpty
-      ? ([..._missions]..sort((a, b) => b.id.compareTo(a.id)))
-      : [..._filteredOnGoingMission];
-
-  set filteredOnGoingMission(List<Mission> value) {
-    _filteredOnGoingMission = value;
-    notifyListeners();
-  }
-
-  void clearSearchField() {
-    _searchMissionController.text = "";
-    notifyListeners();
-  }
-
-  List<dynamic> _filteredOp = [];
-
-  List<dynamic> get filteredOp => _filteredOp;
-
-  Timer? _debounce;
-
-  bool _isSearching = false;
-
-  bool get isSearching => _isSearching;
-
-  void filterOnGoingMissionByName(String query) {
-    if (_debounce?.isActive ?? false) _debounce?.cancel();
-    //
-    _isSearching = true;
-    notifyListeners();
-    //
-    _debounce = Timer(const Duration(milliseconds: 350), () {
-      _searchMissionController.text = query;
-      notifyListeners();
-      //
-      _isSearching = false;
-      notifyListeners();
-    });
-  }
-
-  void filterTxnByName(List<dynamic> list, String query) {
-    if (_debounce?.isActive ?? false) _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 350), () {
-      if (query.isEmpty) {
-        _filteredOp = List.from(list);
-      } else {
-        _filteredOp = list.where((op) {
-          if (op is Entree) {
-            return op.description.toLowerCase().contains(query.toLowerCase());
-          } else if (op is Depense) {
-            return op.description.toLowerCase().contains(query.toLowerCase());
-          }
-          return false;
-        }).toList();
-      }
-      //
-      notifyListeners();
-    });
+  void showBottomSheetJustificatif(
+    BuildContext context,
+    Widget child,
+    bool isScroll,
+  ) {
+    showModalBottomSheet(
+      isScrollControlled: isScroll,
+      useSafeArea: true,
+      showDragHandle: true,
+      context: context,
+      builder: (context) {
+        return child;
+      },
+    );
   }
 
   /// Set amount goal for mission
@@ -386,6 +672,11 @@ class TransactionProvider with ChangeNotifier {
   bool _isAmountGoalSet = false;
 
   bool get isAmountGoalSet => _isAmountGoalSet;
+
+  set isAmountGoalSet(bool value) {
+    _isAmountGoalSet = value;
+    notifyListeners();
+  }
 
   void setAmountGoalSet(bool value) {
     _isAmountGoalSet = value;
@@ -404,14 +695,14 @@ class TransactionProvider with ChangeNotifier {
   /// Disposer
   @override
   void dispose() {
-    _searchController.dispose();
-    _debounce?.cancel();
     nomController.dispose();
     capitaleController.dispose();
     dateDebutController.dispose();
     dateFinController.dispose();
     montanEntreetController.dispose();
     descriptionEntreeController.dispose();
+    _imageJustificatif = null;
+    _selectedIndex = -1;
     super.dispose();
   }
 }

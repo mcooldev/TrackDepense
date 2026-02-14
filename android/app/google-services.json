@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "51054736482",
+    "project_id": "track-depenses",
+    "storage_bucket": "track-depenses.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:51054736482:android:965faa8d35e625d5768d3b",
+        "android_client_info": {
+          "package_name": "com.mcooldev.track_depenses"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "51054736482-moqenasorq59bi97q70274uqh3aplmh4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mcooldev.track_depenses",
+            "certificate_hash": "2c40457cff4c48ce5cec706cad94915015ab4d53"
+          }
+        },
+        {
+          "client_id": "51054736482-bmeth2e7ao43gbq1l17jqkfch0qevsiu.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCFii4gFcVDMheI4JgEG8lVwzPxqyhrfH0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "51054736482-bmeth2e7ao43gbq1l17jqkfch0qevsiu.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "51054736482-qe7r4tp57d399stno6fblrqv1c3465bs.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.mcooldev.trackDepenses"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

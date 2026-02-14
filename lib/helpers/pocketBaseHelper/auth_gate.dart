@@ -32,22 +32,35 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   void _initDeepLink() {
-    _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
+    _linkSubscription = _appLinks.uriLinkStream.listen((uri) async {
       if (uri.toString().startsWith(pb.schemeString)) {
         log("Lien de retour détecté : $uri");
         //
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted) setState(() {});
-        });
+        if (uri.queryParameters.containsKey("code")) {
+          log("✅ Code OAuth reçu, vérification de l'authentification...");
+          await Future.delayed(const Duration(milliseconds: 800));
+          //
+          await _checkAuth();
+          //
+        } else {
+          log("❌ Pas de code OAuth - authentification échouée");
+          if (mounted) setState(() => _isCheckingAuth = false);
+        }
       }
     });
   }
 
   Future<void> _checkAuth() async {
+    //
+    setState(() => _isCheckingAuth = true);
+    //
     try {
-      if (pb.pb.authStore.token.isNotEmpty) {
+      if (pb.pb.authStore.token.isNotEmpty && pb.pb.authStore.isValid) {
+        log("Tentative de refresh du token...");
         await pb.pb.collection('users').authRefresh();
         log("Token refresh réussi !");
+      } else {
+        log("⚠️ Pas de token valide à refresh");
       }
     } catch (e) {
       log(e.toString());

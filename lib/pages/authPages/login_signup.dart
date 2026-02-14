@@ -97,7 +97,7 @@ class _LoginSignupState extends State<LoginSignup> {
                                 ),
                                 const SizedBox(width: 12),
                                 Text(
-                                  "Se connecter avec Google",
+                                  "Continuer avec Google",
                                   style: Theme.of(context).textTheme.bodyLarge,
                                 ),
                               ],

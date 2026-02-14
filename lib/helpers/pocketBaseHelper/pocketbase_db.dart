@@ -3,6 +3,7 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:pocketbase/pocketbase.dart';
+import 'package:track_depenses/core/config.dart';
 import 'package:track_depenses/models/user_model.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -13,18 +14,14 @@ class PocketBaseDb {
 
   late PocketBase pb;
 
+  static final config = TDConfig();
 
-
-  final schemeString =
-      "com.googleusercontent.apps.699525924030-v6gsmugnbp3dr97u6l535oopl89e83r7:/";
+  final schemeString = config.schemeString;
 
   ///
 
   void initPb(AuthStore store) {
-    pb = PocketBase(
-      'https://divisi-angella-slumberous.ngrok-free.dev',
-      authStore: store,
-    );
+    pb = PocketBase(config.baseUrl, authStore: store);
   }
 
   Future<void> createAndLogUser(UserModel user) async {
@@ -46,14 +43,16 @@ class PocketBaseDb {
     }
   }
 
-  Future<void> resetPassword(BuildContext context) async {
+  Future<void> resetPassword(BuildContext context, String? enteredEmail) async {
     try {
-      final email = pb.authStore.record?.getStringValue("email");
-      if (email == null) {
+      final existedEmail =
+          pb.authStore.record?.getStringValue("email") ?? enteredEmail;
+      //
+      if (existedEmail == null || existedEmail.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              "❌⚠️❌ • Impossible de récupérer l'email !",
+              "❌ • Pas d'email fourni !",
               style: Theme.of(
                 context,
               ).textTheme.titleMedium!.copyWith(color: Colors.white),
@@ -66,13 +65,13 @@ class PocketBaseDb {
         return;
       }
       //
-      await pb.collection("users").requestPasswordReset(email);
+      await pb.collection("users").requestPasswordReset(existedEmail);
       //
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            "🎊✅🎉 • Email envoyé avec succès !",
+            "🎊 • Email envoyé avec succès !",
             style: Theme.of(
               context,
             ).textTheme.titleMedium!.copyWith(color: Colors.white),
@@ -87,7 +86,7 @@ class PocketBaseDb {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            "❌⚠️❌ • Erreur lors de l'envoie du mail !",
+            "⚠️ • Problème lors de l'envoie !",
             style: Theme.of(
               context,
             ).textTheme.titleMedium!.copyWith(color: Colors.white),
@@ -102,7 +101,7 @@ class PocketBaseDb {
 
   Future<void> signWithGoogle(BuildContext context) async {
     try {
-      await pb
+      final authData = await pb
           .collection("users")
           .authWithOAuth2(
             "google",
@@ -112,22 +111,12 @@ class PocketBaseDb {
             scopes: ["email", "profile"],
             createData: {"emailVisibility": true},
           );
+      if (authData.token.isEmpty) {
+        throw Exception("Token vide après authentification");
+      }
+      log("✅ Connexion Google réussie - User: ${authData.record.id}");
+      //
       if (!context.mounted) return;
-      //
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            "🎊✅🎉 • Connexion Google réussie !",
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium!.copyWith(color: Colors.white),
-          ),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-          shape: const StadiumBorder(),
-        ),
-      );
-      //
       Navigator.of(context).pushReplacementNamed("/authGate");
       //
     } catch (e) {
@@ -136,7 +125,7 @@ class PocketBaseDb {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            "❌⚠️❌ • Erreur: Connexion Google impossible !",
+            "❌ • Erreur: Connexion Google impossible !",
             style: Theme.of(
               context,
             ).textTheme.titleMedium!.copyWith(color: Colors.white),

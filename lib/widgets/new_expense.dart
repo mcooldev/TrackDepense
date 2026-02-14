@@ -1,12 +1,12 @@
-import 'dart:io';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:track_depenses/widgets/text_form_field_widget.dart';
 
+import '../helpers/pocketBaseHelper/trx_db.dart';
 import '../models/transaction_model.dart';
 import '../providers/transaction_provider.dart';
+import 'add_entry_widget.dart';
 import 'mission_category_widget.dart';
 
 class NewExpense extends StatefulWidget {
@@ -36,22 +36,22 @@ class _NewExpenseState extends State<NewExpense> {
             widget.depenseToEdit!.categorie,
           ),
         );
-        prov.imageJustificatif = File(widget.depenseToEdit!.justificatif!);
+        prov.imageJustificatif = null;
+      } else {
+        prov.clearControllers();
       }
     });
   }
 
-  //
-  final db = '';
-  final userId = '';
+  final trxDb = TrxDb.instance;
 
   ///
   @override
   Widget build(BuildContext context) {
-    return Consumer<TransactionProvider>(
-      builder: (_, prov, _) {
-        return Scaffold(
-          body: SingleChildScrollView(
+    return Scaffold(
+      body: Consumer<TransactionProvider>(
+        builder: (_, prov, _) {
+          return SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 50),
             child: Column(
               children: [
@@ -70,17 +70,22 @@ class _NewExpenseState extends State<NewExpense> {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: 8,
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 4,
-                      crossAxisSpacing: 8,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 1,
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 4,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 1,
+                        ),
                     itemBuilder: (ctx, index) {
                       bool isSelected = index == prov.selectedIndex;
                       return MissionCategoryWidget(
-                        missionTypeIcon: missionTypeIcon.values.elementAt(index),
-                        missionTypeName: missionTypeName.values.elementAt(index),
+                        missionTypeIcon: missionTypeIcon.values.elementAt(
+                          index,
+                        ),
+                        missionTypeName: missionTypeName.values.elementAt(
+                          index,
+                        ),
                         isSelected: isSelected,
                         onTapMissionType: () {
                           prov.setSelectedIndex(index);
@@ -142,16 +147,16 @@ class _NewExpenseState extends State<NewExpense> {
                     Container(
                       height: 100,
                       width: MediaQuery.sizeOf(context).width,
+                      alignment: Alignment.center,
                       clipBehavior: Clip.antiAlias,
                       decoration: BoxDecoration(
                         color: Theme.of(context).brightness == Brightness.dark
                             ? Colors.white.withValues(alpha: 0.1)
-                            : Colors.white,
+                            : Colors.grey.shade100,
                         borderRadius: BorderRadius.circular(8),
                         border:
-                            prov.imageJustificatif == null ||
-                                prov.imageJustificatif!.path.isEmpty ||
-                                prov.imageJustificatif!.path == ""
+                            (widget.depenseToEdit?.justificatif == null ||
+                                widget.depenseToEdit!.justificatif!.isEmpty)
                             ? Border.all(
                                 width: 1,
                                 color:
@@ -163,9 +168,9 @@ class _NewExpenseState extends State<NewExpense> {
                             : null,
                       ),
                       child:
-                          prov.imageJustificatif == null ||
-                              prov.imageJustificatif!.path.isEmpty ||
-                              prov.imageJustificatif!.path == ""
+                          (prov.imageJustificatif == null &&
+                              (widget.depenseToEdit?.justificatif == null ||
+                                  widget.depenseToEdit!.justificatif!.isEmpty))
                           ? Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
@@ -181,17 +186,106 @@ class _NewExpenseState extends State<NewExpense> {
                                 ),
                               ],
                             )
-                          : Image.file(
+                          : prov.imageJustificatif != null
+                          ? Image.file(
                               prov.imageJustificatif!,
                               fit: BoxFit.cover,
+                            )
+                          : Image.network(
+                              "${trxDb.pb.baseURL}/api/files/depenses/${widget.depenseToEdit?.id ?? ''}/${widget.depenseToEdit?.justificatif ?? ''}",
+                              headers: const {
+                                "ngrok-skip-browser-warning": "1",
+                              },
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const Icon(Icons.broken_image),
                             ),
                     ),
                     const SizedBox(height: 12),
 
                     // Bouton
                     MaterialButton(
-                      onPressed: () {
-                        prov.pickImageJustificatif();
+                      onPressed: () async {
+                        prov.showBottomSheetJustificatif(
+                          context,
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 50.0),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Choisissez la source',
+                                  style: Theme.of(context).textTheme.titleLarge!
+                                      .copyWith(fontWeight: FontWeight.w600),
+                                ),
+                                const SizedBox(height: 24),
+                                Row(
+                                  mainAxisSize: MainAxisSize.max,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+
+                                  children: [
+                                    // Pick image from gallery
+                                    Expanded(
+                                      child: AddEntryWidget(
+                                        onTap: () async {
+                                          await prov
+                                              .pickImageJustificatifFromGallery()
+                                              .then((_) {
+                                                if (!context.mounted) return;
+                                                Navigator.of(context).pop();
+                                              });
+                                        },
+                                        icon: CupertinoIcons.photo_on_rectangle,
+                                        iconColor: Colors.black,
+                                        textColor: Colors.black,
+                                        containerBg:
+                                            Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.white.withValues(
+                                                alpha: 0.1,
+                                              )
+                                            : Colors.white,
+                                        borderColor: Colors.grey.shade200,
+                                        textEntry: 'Gallery',
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+
+                                    // Pick image from camera
+                                    Expanded(
+                                      child: AddEntryWidget(
+                                        onTap: () async {
+                                          await prov
+                                              .pickImageJustificatifFromCamera()
+                                              .then((_) {
+                                                if (!context.mounted) return;
+                                                Navigator.of(context).pop();
+                                              });
+                                        },
+                                        icon:
+                                            CupertinoIcons.camera_on_rectangle,
+                                        iconColor: Colors.black,
+                                        textColor: Colors.black,
+                                        containerBg:
+                                            Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.white.withValues(
+                                                alpha: 0.1,
+                                              )
+                                            : Colors.white,
+                                        borderColor: Colors.grey.shade200,
+                                        textEntry: 'Caméra',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          false,
+                        );
                       },
                       splashColor: Theme.of(
                         context,
@@ -210,7 +304,9 @@ class _NewExpenseState extends State<NewExpense> {
                         side: BorderSide(width: 1, color: Colors.grey.shade200),
                       ),
                       child: Text(
-                        "Ajouter une image",
+                        widget.depenseToEdit != null
+                            ? "Modifier l'image"
+                            : "Ajouter une image",
                         style: TextStyle(
                           color: Theme.of(context).brightness == Brightness.dark
                               ? Colors.white
@@ -225,28 +321,34 @@ class _NewExpenseState extends State<NewExpense> {
                 /// Ajouter la dépense Bouton
                 MaterialButton(
                   onPressed: () async {
+                    if (prov.isLoading) return;
+
                     //
                     final newDepense = Depense(
-                      id: widget.depenseToEdit?.id,
                       montant: double.parse(
                         prov.montantDepenseController.text.trim(),
                       ),
                       categorie: missionTypeName.values.elementAt(
                         prov.selectedIndex,
                       ),
-                      description: prov.descriptionDepenseController.text.trim(),
-                      date: DateTime.now(),
-                      justificatif: prov.imageJustificatif?.path ?? "",
+                      description: prov.descriptionDepenseController.text
+                          .trim(),
+                      missionId: widget.mission.id ?? '',
                     );
                     //
                     if (widget.depenseToEdit != null) {
-                      prov.updateDepense(widget.mission, newDepense);
-                      // todo: update depense method in db
+                      await prov.updateDepenseOnPb(
+                        missionId: widget.mission.id!,
+                        depenseId: widget.depenseToEdit!.id!,
+                        data: newDepense.toMap(),
+                      );
                     } else {
-                      prov.add(newDepense);
                       //
-                      prov.addDepenseToMission(widget.mission, newDepense);
-                      // todo: add depense method in db
+                      if (widget.mission.id == null) return;
+                      prov.addDepenseToPb(
+                        depense: newDepense,
+                        missionId: widget.mission.id!,
+                      );
                     }
                     prov.clearControllers();
                     //
@@ -262,9 +364,7 @@ class _NewExpenseState extends State<NewExpense> {
                         ),
                         backgroundColor: Theme.of(context).colorScheme.primary,
                         behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(90),
-                        ),
+                        shape: const StadiumBorder(),
                       ),
                     );
                   },
@@ -278,21 +378,23 @@ class _NewExpenseState extends State<NewExpense> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(90),
                   ),
-                  child: Text(
-                    widget.depenseToEdit == null
-                        ? "Ajouter la dépense"
-                        : "Modifier la dépense",
-                    style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                      fontSize: 17,
-                      color: Colors.white,
-                    ),
-                  ),
+                  child: prov.isLoading
+                      ? const CircularProgressIndicator.adaptive(
+                          backgroundColor: Colors.white,
+                        )
+                      : Text(
+                          widget.depenseToEdit == null
+                              ? "Ajouter la dépense"
+                              : "Modifier la dépense",
+                          style: Theme.of(context).textTheme.titleMedium!
+                              .copyWith(fontSize: 17, color: Colors.white),
+                        ),
                 ),
               ],
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

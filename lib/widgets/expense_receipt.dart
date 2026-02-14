@@ -1,20 +1,15 @@
-import 'dart:io';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../helpers/pocketBaseHelper/trx_db.dart';
 import '../models/transaction_model.dart';
 
 class ExpenseReceipt extends StatelessWidget {
-  const ExpenseReceipt({
-    super.key,
-    required this.mission,
-    required this.expense,
-  });
+  const ExpenseReceipt({super.key, required this.mission, required this.trx});
 
   final Mission mission;
-  final Depense expense;
+  final dynamic trx;
 
   @override
   Widget build(BuildContext context) {
@@ -25,6 +20,19 @@ class ExpenseReceipt extends StatelessWidget {
       symbol: "F",
       decimalDigits: 0,
     );
+
+    final trxDb = TrxDb.instance;
+
+    String? imageUrl;
+    //
+    if (trx.justificatif != null && trx.justificatif!.isNotEmpty) {
+      final baseUrl = trxDb.pb.baseURL;
+      final collectionName = trx is Entree ? "entrees" : "depenses";
+      final recordId = trx.id;
+      final fileName = trx.justificatif;
+
+      imageUrl = "$baseUrl/api/files/$collectionName/$recordId/$fileName";
+    }
 
     ///
     return Container(
@@ -61,7 +69,7 @@ class ExpenseReceipt extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           Text(
-            "REÇU DE LA DÉPENSE",
+            trx is Entree ? "REÇU DE L'ENTREE" : "REÇU DE LA DÉPENSE",
             style: Theme.of(context).textTheme.titleLarge!.copyWith(
               fontSize: 16,
               fontWeight: FontWeight.w700,
@@ -117,7 +125,7 @@ class ExpenseReceipt extends StatelessWidget {
                               style: Theme.of(context).textTheme.bodyLarge,
                             ),
                             Text(
-                              expense.description,
+                              trx.description,
                               softWrap: true,
                               style: Theme.of(context).textTheme.headlineLarge!
                                   .copyWith(
@@ -153,7 +161,7 @@ class ExpenseReceipt extends StatelessWidget {
                             style: Theme.of(context).textTheme.bodyLarge,
                           ),
                           Text(
-                            "Le ${DateFormat("dd/MM/yyyy").format(expense.date)}",
+                            "Le ${DateFormat("dd/MM/yyyy").format(trx.createdAt ?? DateTime.now())}",
                             style: Theme.of(context).textTheme.bodyLarge!
                                 .copyWith(
                                   fontWeight: FontWeight.bold,
@@ -176,7 +184,7 @@ class ExpenseReceipt extends StatelessWidget {
                             style: Theme.of(context).textTheme.bodyLarge,
                           ),
                           Text(
-                            "- ${currencyFormatter.format(expense.montant)}",
+                            "- ${currencyFormatter.format(trx.montant)}",
                             style: Theme.of(context).textTheme.bodyLarge!
                                 .copyWith(
                                   fontWeight: FontWeight.bold,
@@ -199,7 +207,7 @@ class ExpenseReceipt extends StatelessWidget {
                             style: Theme.of(context).textTheme.bodyLarge,
                           ),
                           Text(
-                            expense.categorie,
+                            trx.categorie,
                             style: Theme.of(context).textTheme.bodyLarge!
                                 .copyWith(
                                   fontWeight: FontWeight.bold,
@@ -237,47 +245,51 @@ class ExpenseReceipt extends StatelessWidget {
           const SizedBox(height: 8),
           // Image justificative
           Container(
-              height: MediaQuery.sizeOf(context).height * 0.4,
-              width: MediaQuery.sizeOf(context).width,
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(
+            height: MediaQuery.sizeOf(context).height * 0.4,
+            width: MediaQuery.sizeOf(context).width,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                width: 1.5,
                 color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white.withValues(alpha: 0.1)
+                    ? Colors.white.withValues(alpha: 0.2)
                     : Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  width: 1.5,
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white.withValues(alpha: 0.2)
-                      : Colors.white,
-                ),
               ),
-              child: expense.justificatif == null || expense.justificatif == ""
-                  ? Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          CupertinoIcons.photo,
-                          size: 70,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.2),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          "Pas de justificatif ajouté",
-                          style: Theme.of(context).textTheme.bodyLarge,
-                        ),
-                      ],
-                    )
-                  : ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.file(
-                        File(expense.justificatif.toString()),
-                        fit: BoxFit.contain,
-                      ),
-                    ),
             ),
+            child: (imageUrl == null)
+                ? Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        CupertinoIcons.photo,
+                        size: 70,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.2),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        "Pas de justificatif ajouté",
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
+                    ],
+                  )
+                : ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      imageUrl.toString(),
+                      headers: const {"ngrok-skip-browser-warning": "true"},
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(Icons.broken_image);
+                      },
+                    ),
+                  ),
+          ),
 
           const SizedBox(height: 24),
 
