@@ -91,6 +91,7 @@ class _NewEntreeState extends State<NewEntree> {
                         onTapMissionType: () {
                           prov.setSelectedIndex(index);
                         },
+                        isEntree: true,
                       );
                     },
                   ),
@@ -148,7 +149,6 @@ class _NewEntreeState extends State<NewEntree> {
                     Container(
                       height: 100,
                       width: MediaQuery.sizeOf(context).width,
-                      alignment: Alignment.center,
                       clipBehavior: Clip.antiAlias,
                       decoration: BoxDecoration(
                         color: Theme.of(context).brightness == Brightness.dark
@@ -194,9 +194,6 @@ class _NewEntreeState extends State<NewEntree> {
                             )
                           : Image.network(
                               "${trxDb.pb.baseURL}/api/files/entrees/${widget.entreeToEdit?.id ?? ''}/${widget.entreeToEdit?.justificatif ?? ''}",
-                              headers: const {
-                                "ngrok-skip-browser-warning": "1",
-                              },
                               fit: BoxFit.cover,
                               loadingBuilder:
                                   (
@@ -330,6 +327,23 @@ class _NewEntreeState extends State<NewEntree> {
                 MaterialButton(
                   onPressed: () async {
                     if (prov.isLoading) return;
+                    //
+                    if (prov.selectedIndex == -1) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            "⚠️️ • Veuillez sélectionner une catégorie",
+                            style: Theme.of(context).textTheme.bodyMedium!
+                                .copyWith(color: Colors.white),
+                          ),
+                          backgroundColor: Colors.red,
+                          behavior: SnackBarBehavior.floating,
+                          shape: const StadiumBorder(),
+                        ),
+                      );
+                      return;
+                    }
                     //
                     final newEntree = Entree(
                       id: widget.entreeToEdit?.id,

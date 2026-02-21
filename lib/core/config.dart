@@ -9,14 +9,9 @@ class TDConfig {
 
   ///
 
-  //
-  final schemeString =
-      "com.googleusercontent.apps.699525924030-v6gsmugnbp3dr97u6l535oopl89e83r7:/";
-  //
-
   final String baseUrl = const String.fromEnvironment(
     "BASE_URL",
-    defaultValue: 'https://divisi-angella-slumberous.ngrok-free.dev',
+    defaultValue: 'https://trackdepenses.pockethost.io/',
   );
 
   final bool isProduction = const bool.fromEnvironment(

@@ -208,7 +208,7 @@ class _ProfileState extends State<Profile> {
                               color: Theme.of(context).colorScheme.onSurface,
                             ),
                             title: Text(
-                              "Claire 🌝️ • Sombre 🌚",
+                              "Thème 🌝️ • 🌚",
                               style: Theme.of(context).textTheme.bodyLarge!
                                   .copyWith(
                                     color: Theme.of(

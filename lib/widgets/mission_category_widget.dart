@@ -7,15 +7,20 @@ class MissionCategoryWidget extends StatelessWidget {
     required this.missionTypeName,
     required this.onTapMissionType,
     this.isSelected = false,
+    required this.isEntree,
   });
 
   final String missionTypeIcon;
   final String missionTypeName;
   final void Function() onTapMissionType;
-  final bool isSelected;
+  final bool isSelected, isEntree;
 
   @override
   Widget build(BuildContext context) {
+    ///
+    final theme = Theme.of(context);
+
+    ///
     return GestureDetector(
       onTap: onTapMissionType,
       child: Column(
@@ -24,24 +29,31 @@ class MissionCategoryWidget extends StatelessWidget {
           CircleAvatar(
             radius: 25,
             backgroundColor: isSelected
-                ? Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white
-                      : Theme.of(context).colorScheme.secondary
-                : Theme.of(context).brightness == Brightness.dark
-                ? Colors.white.withValues(alpha: 0.15)
-                : Colors.grey.shade100,
+                ? isEntree == true ? theme.colorScheme.secondary : theme
+                .colorScheme.primary : theme.brightness == Brightness.dark
+                ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade100,
             child: Text(
               missionTypeIcon,
-              style: Theme.of(context).textTheme.titleLarge,
+              style: Theme
+                  .of(context)
+                  .textTheme
+                  .titleLarge,
             ),
           ),
           const SizedBox(height: 4),
           // Nom de la catégorie
           Text(
             missionTypeName,
-            style: Theme.of(
+            softWrap: true,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme
+                .of(
               context,
-            ).textTheme.bodyLarge!.copyWith(fontSize: 15),
+            )
+                .textTheme
+                .bodyLarge!
+                .copyWith(fontSize: 14),
           ),
         ],
       ),

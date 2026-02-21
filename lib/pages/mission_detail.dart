@@ -34,6 +34,8 @@ class _MissionDetailState extends State<MissionDetail> {
 
   Timer? _searchDebounce;
 
+  late Mission currentMission;
+
   final formatter = NumberFormat.currency(
     locale: 'fr_FR',
     symbol: 'F',
@@ -55,7 +57,7 @@ class _MissionDetailState extends State<MissionDetail> {
       if (!mounted) return;
       if (val != null && val is Mission) {
         setState(() {
-          widget.mission.nom = val.nom;
+          currentMission = val;
         });
       }
     });
@@ -64,7 +66,9 @@ class _MissionDetailState extends State<MissionDetail> {
   @override
   void initState() {
     super.initState();
-    if (widget.mission.id == null) {
+    currentMission = widget.mission;
+    //
+    if (currentMission.id == null) {
       Navigator.of(context).pushNamedAndRemoveUntil("/home", (route) => false);
     }
   }
@@ -109,7 +113,6 @@ class _MissionDetailState extends State<MissionDetail> {
 
             ///
             final filteredTxnList = snapshot.data ?? [];
-            final currentMission = widget.mission;
             //
             final opEntrees = filteredTxnList.whereType<Entree>().toList();
             final opDepenses = filteredTxnList.whereType<Depense>().toList();
@@ -243,10 +246,7 @@ class _MissionDetailState extends State<MissionDetail> {
                           children: [
                             // Mission state
                             Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
+                              padding: const EdgeInsets.fromLTRB(8, 6, 12, 6),
                               decoration: BoxDecoration(
                                 color: currentMission.isClosed == true
                                     ? Colors.red
@@ -284,10 +284,7 @@ class _MissionDetailState extends State<MissionDetail> {
                               Padding(
                                 padding: const EdgeInsets.only(left: 8.0),
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
+                                  padding: const EdgeInsets.fromLTRB(8, 6, 12, 6),
                                   decoration: BoxDecoration(
                                     color: Theme.of(
                                       context,
@@ -452,7 +449,9 @@ class _MissionDetailState extends State<MissionDetail> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(90),
                               side: BorderSide(
-                                color: Theme.of(context).brightness == Brightness.dark
+                                color:
+                                    Theme.of(context).brightness ==
+                                        Brightness.dark
                                     ? Colors.white.withValues(alpha: 0.2)
                                     : Colors.grey.shade200,
                                 width: 1,
@@ -957,7 +956,7 @@ class _MissionDetailState extends State<MissionDetail> {
                   lineWidth: 7,
                   percent: calculatedPercent,
                   center: Text(
-                    textPercent,
+                    currentMission.amountGoal! > 0 ? textPercent : '-N/A-',
                     style: const TextStyle(fontSize: 18),
                   ),
                   backgroundColor: Theme.of(context).colorScheme.surface,

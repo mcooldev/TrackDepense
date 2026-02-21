@@ -16,8 +16,6 @@ class PocketBaseDb {
 
   static final config = TDConfig();
 
-  final schemeString = config.schemeString;
-
   ///
 
   void initPb(AuthStore store) {
@@ -101,18 +99,30 @@ class PocketBaseDb {
 
   Future<void> signWithGoogle(BuildContext context) async {
     try {
+      //
       final authData = await pb
           .collection("users")
           .authWithOAuth2(
             "google",
             (url) async {
-              await launchUrl(url, mode: LaunchMode.externalApplication);
+              final urlString = url.toString();
+              final modifiedUrl = Uri.parse(
+                urlString.contains('?')
+                    ? '$urlString&prompt=select_account'
+                    : '$urlString?prompt=select_account',
+              );
+
+              await launchUrl(
+                modifiedUrl,
+                mode: LaunchMode.externalApplication,
+              );
             },
             scopes: ["email", "profile"],
             createData: {"emailVisibility": true},
           );
+
       if (authData.token.isEmpty) {
-        throw Exception("Token vide après authentification");
+        throw Exception("Token vide");
       }
       log("✅ Connexion Google réussie - User: ${authData.record.id}");
       //

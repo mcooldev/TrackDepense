@@ -31,8 +31,10 @@ class _NewMissionState extends State<NewMission> {
         prov.capitaleController.text = widget.missionToEdit!.capitale
             .toStringAsFixed(0);
         prov.isAmountGoalSet = widget.missionToEdit!.isAmountGoal;
-        prov.amountGoalController.text = widget.missionToEdit!.amountGoal
-            .toString();
+        prov.amountGoalController.text =
+            widget.missionToEdit?.amountGoal != null
+            ? widget.missionToEdit!.amountGoal!.toStringAsFixed(0)
+            : 0.0.toStringAsFixed(0);
         prov.setHintValueDebut(dateFormat(widget.missionToEdit!.dateDebut));
         prov.setHintValueFin(dateFormat(widget.missionToEdit!.dateFin));
         prov.dateDebutController.text = dateFormat(
@@ -101,7 +103,7 @@ class _NewMissionState extends State<NewMission> {
                   controller: prov.capitaleController,
                   hintText: "Ex: 100000",
                   isLabel: true,
-                  label: "Capitale de départ",
+                  label: "Budget Initial",
                   iconData: CupertinoIcons.money_dollar,
                   isPassword: false,
                   keyboardType: const TextInputType.numberWithOptions(
@@ -143,7 +145,7 @@ class _NewMissionState extends State<NewMission> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            "Définir un montant objectif",
+                            "Montant objectif (Optionnel)",
                             style: Theme.of(context).textTheme.bodyLarge!
                                 .copyWith(
                                   color: Theme.of(

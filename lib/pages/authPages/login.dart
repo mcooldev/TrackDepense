@@ -263,7 +263,7 @@ class _LoginState extends State<Login> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              "Pas encore de compte ?",
+                              "Pas de compte ?",
                               style: Theme.of(context).textTheme.titleMedium!
                                   .copyWith(
                                     color: Theme.of(context)
@@ -281,7 +281,7 @@ class _LoginState extends State<Login> {
                                 );
                               },
                               child: Text(
-                                "Créer un maintenant.",
+                                "Créer maintenant.",
                                 style: Theme.of(context).textTheme.titleMedium!
                                     .copyWith(
                                       color:

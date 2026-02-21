@@ -90,6 +90,7 @@ class _NewExpenseState extends State<NewExpense> {
                         onTapMissionType: () {
                           prov.setSelectedIndex(index);
                         },
+                        isEntree: false,
                       );
                     },
                   ),
@@ -147,7 +148,6 @@ class _NewExpenseState extends State<NewExpense> {
                     Container(
                       height: 100,
                       width: MediaQuery.sizeOf(context).width,
-                      alignment: Alignment.center,
                       clipBehavior: Clip.antiAlias,
                       decoration: BoxDecoration(
                         color: Theme.of(context).brightness == Brightness.dark
@@ -193,9 +193,6 @@ class _NewExpenseState extends State<NewExpense> {
                             )
                           : Image.network(
                               "${trxDb.pb.baseURL}/api/files/depenses/${widget.depenseToEdit?.id ?? ''}/${widget.depenseToEdit?.justificatif ?? ''}",
-                              headers: const {
-                                "ngrok-skip-browser-warning": "1",
-                              },
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) =>
                                   const Icon(Icons.broken_image),
@@ -322,7 +319,45 @@ class _NewExpenseState extends State<NewExpense> {
                 MaterialButton(
                   onPressed: () async {
                     if (prov.isLoading) return;
-
+                    //
+                    if (prov.selectedIndex == -1) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            "⚠️️ • Veuillez sélectionner une catégorie",
+                            style: Theme.of(context).textTheme.bodyMedium!
+                                .copyWith(color: Colors.white),
+                          ),
+                          backgroundColor: Colors.red,
+                          behavior: SnackBarBehavior.floating,
+                          shape: const StadiumBorder(),
+                        ),
+                      );
+                      return;
+                    }
+                    //
+                    final amountBudget = double.parse(
+                      widget.mission.capitale.toStringAsFixed(0),
+                    );
+                    final amountExpense = double.parse(
+                      prov.montantDepenseController.text.trim(),
+                    );
+                    if (amountExpense > amountBudget) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            "😔️• Budget insuffisant",
+                            style: Theme.of(context).textTheme.bodyMedium!
+                                .copyWith(color: Colors.white),
+                          ),
+                          backgroundColor: Colors.red,
+                          behavior: SnackBarBehavior.floating,
+                          shape: const StadiumBorder(),
+                        ),
+                      );
+                      return;
+                    }  
                     //
                     final newDepense = Depense(
                       montant: double.parse(

@@ -33,7 +33,7 @@ class _AuthGateState extends State<AuthGate> {
 
   void _initDeepLink() {
     _linkSubscription = _appLinks.uriLinkStream.listen((uri) async {
-      if (uri.toString().startsWith(pb.schemeString)) {
+      if (uri.path.contains('oauth2-redirect')) {
         log("Lien de retour détecté : $uri");
         //
         if (uri.queryParameters.containsKey("code")) {

@@ -137,6 +137,7 @@ class _LoginSignupState extends State<LoginSignup> {
 
                     /// Sign up && Login buttons
                     Row(
+                      mainAxisSize: MainAxisSize.max,
                       children: [
                         // Signup Button
                         Expanded(
@@ -158,11 +159,12 @@ class _LoginSignupState extends State<LoginSignup> {
                               ),
                             ),
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 32,
+                              horizontal: 16,
                               vertical: 16,
                             ),
                             child: Text(
                               "Créer un compte",
+                              softWrap: false,
                               style: TextStyle(
                                 color: Theme.of(context).colorScheme.primary,
                               ),
@@ -184,7 +186,7 @@ class _LoginSignupState extends State<LoginSignup> {
                               borderRadius: BorderRadius.circular(90),
                             ),
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 32,
+                              horizontal: 16,
                               vertical: 16,
                             ),
                             child: Text(

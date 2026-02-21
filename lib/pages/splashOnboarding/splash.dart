@@ -48,16 +48,17 @@ class _SplashState extends State<Splash> {
   ///
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return const Scaffold(
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               SizedBox(
-                height: MediaQuery.sizeOf(context).height * 0.3,
-                child: const Image(
+                height: 100,
+                width: 100,
+                child: Image(
                   image: AssetImage("assets/td_splash_icon_transparent.png"),
                   fit: BoxFit.cover,
                 ),

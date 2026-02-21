@@ -35,7 +35,7 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   provider: ^6.1.5+1
-  google_fonts: ^8.0.0
+  google_fonts: ^8.0.2
   shared_preferences: ^2.5.4
   uuid: ^4.5.2
   percent_indicator: ^4.2.5
@@ -43,7 +43,6 @@ dependencies:
   intl: ^0.20.2
   flutter_slidable: ^4.0.3
   image_picker: ^1.2.1
-  flutter_launcher_icons: ^0.14.4
   path_provider: ^2.1.5
   screenshot: ^3.0.0
   pdf: ^3.11.3
@@ -52,17 +51,20 @@ dependencies:
   rxdart: ^0.28.0
   pocketbase: ^0.23.2
   url_launcher: ^6.3.2
-  app_links: ^6.4.1
   http: ^1.6.0
   cached_network_image: ^3.4.1
   hugeicons: ^1.1.5
   flutter_image_compress: ^2.4.0
+  flutter_launcher_icons: ^0.14.4
+  app_links: ^7.0.0
 
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/td_launcher_icon.png"
+  image_path: "assets/icon/icon.png"
   min_sdk_android: 21
+  adaptive_icon_background: "#8C1AB1"
+  adaptive_icon_foreground: "#8C1AB1"
 
 
 dev_dependencies:
@@ -91,6 +93,8 @@ flutter:
   assets:
     - assets/
     - assets/fonts/
+    - assets/icon/icon.png
+    - shorebird.yaml
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
