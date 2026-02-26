@@ -15,59 +15,11 @@ class TrxDb {
 
   ///
 
-  Stream<List<Mission>> fetchMissionsOnPb(String searchQuery, bool isClosed) {
-    final controller = StreamController<List<Mission>>.broadcast();
-    final expand = "depenses_via_missionId,entrees_via_missionId";
-    String filter = "user = '${currentUser?.id}' && isClosed = $isClosed";
-    if (searchQuery.isNotEmpty) {
-      filter += " && nom ~ '$searchQuery'";
-    }
-    List<Mission> missionList = [];
-    //
-    pb
-        .collection("missions")
-        .getFullList(sort: "-created", filter: filter, expand: expand)
-        .then((records) {
-          missionList = records.map((m) => Mission.fromRecord(m)).toList();
-          if (!controller.isClosed) controller.add(List.from(missionList));
-        })
-        .catchError((e) {
-          log(e.toString());
-          if (!controller.isClosed) controller.add([]);
-        });
-    //
-    pb.collection("missions").subscribe("*", (e) {
-      //
-      if (e.record == null) return;
-      //
-      switch (e.action) {
-        case "create":
-          missionList.insert(0, Mission.fromRecord(e.record!));
-          break;
-        case "update":
-          final index = missionList.indexWhere((m) => m.id == e.record!.id);
-          if (index != -1) {
-            missionList[index] = Mission.fromRecord(e.record!);
-          }
-          break;
-        case "delete":
-          missionList.removeWhere((m) => m.id == e.record!.id);
-          break;
-      }
-      if (!controller.isClosed) {
-        controller.add(List.from(missionList));
-      }
-    }, filter: filter);
-    //
-    controller.onCancel = () {};
-    //
-    return controller.stream;
-  }
-
   Stream<List<dynamic>> fetchEntreesAndDepensesOnPb(
     String missionId,
     String queryString,
   ) {
+    //
     final controller = StreamController<List<dynamic>>();
     UnsubscribeFunc? entreeUnsubscribe;
     UnsubscribeFunc? depenseUnsubscribe;
@@ -154,10 +106,5 @@ class TrxDb {
 
   Future<void> deleteTrxOnPb(String trxId, isEntree) async {
     await pb.collection(isEntree ? "entrees" : "depenses").delete(trxId);
-  }
-
-  ///
-  void dispose() {
-    pb.collection("missions").unsubscribe("*");
   }
 }

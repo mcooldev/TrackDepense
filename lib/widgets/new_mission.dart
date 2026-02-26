@@ -28,7 +28,7 @@ class _NewMissionState extends State<NewMission> {
       if (widget.missionToEdit != null) {
         //
         prov.nomController.text = widget.missionToEdit!.nom;
-        prov.capitaleController.text = widget.missionToEdit!.capitale
+        prov.capitaleController.text = widget.missionToEdit!.capitaleInitial
             .toStringAsFixed(0);
         prov.isAmountGoalSet = widget.missionToEdit!.isAmountGoal;
         prov.amountGoalController.text =
@@ -37,10 +37,8 @@ class _NewMissionState extends State<NewMission> {
             : 0.0.toStringAsFixed(0);
         prov.setHintValueDebut(dateFormat(widget.missionToEdit!.dateDebut));
         prov.setHintValueFin(dateFormat(widget.missionToEdit!.dateFin));
-        prov.dateDebutController.text = dateFormat(
-          widget.missionToEdit!.dateDebut,
-        );
-        prov.dateFinController.text = dateFormat(widget.missionToEdit!.dateFin);
+        prov.dateDebut ??= widget.missionToEdit!.dateDebut;
+        prov.dateFin ??= widget.missionToEdit!.dateFin;
       } else {
         prov.clearControllers();
       }
@@ -104,7 +102,7 @@ class _NewMissionState extends State<NewMission> {
                   hintText: "Ex: 100000",
                   isLabel: true,
                   label: "Budget Initial",
-                  iconData: CupertinoIcons.money_dollar,
+                  iconData: CupertinoIcons.number,
                   isPassword: false,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: false,
@@ -182,7 +180,7 @@ class _NewMissionState extends State<NewMission> {
                             TextFormFieldWidget(
                               controller: prov.amountGoalController,
                               hintText: "Montant objectif",
-                              iconData: CupertinoIcons.money_dollar,
+                              iconData: CupertinoIcons.number,
                               isPassword: false,
                               validator: (val) {
                                 if (val == null || val.isEmpty) {
@@ -304,8 +302,8 @@ class _NewMissionState extends State<NewMission> {
                         ),
                       );
                       return;
-                    } else if (prov.dateDebutController.text.isEmpty ||
-                        prov.dateFinController.text.isEmpty) {
+                    } else if (prov.dateDebut == null ||
+                        prov.dateFin == null) {
                       //
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -356,9 +354,9 @@ class _NewMissionState extends State<NewMission> {
                       capitaleInitial: double.parse(
                         prov.capitaleController.text.trim(),
                       ),
-                      capitale: double.parse(
-                        prov.capitaleController.text.trim(),
-                      ),
+                      capitale:
+                          widget.missionToEdit?.capitale ??
+                          double.parse(prov.capitaleController.text.trim()),
                       isAmountGoal: prov.isAmountGoalSet,
                       amountGoal: prov.isAmountGoalSet
                           ? double.parse(prov.amountGoalController.text.trim())

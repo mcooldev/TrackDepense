@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 import 'package:track_depenses/helpers/pocketBaseHelper/pocketbase_db.dart';
 import 'package:track_depenses/pages/closed_missions.dart';
@@ -44,39 +45,44 @@ class _ProfileState extends State<Profile> {
             centerTitle: false,
             automaticallyImplyLeading: false,
             actions: [
-              Container(
-                margin: const EdgeInsets.only(right: 16),
-                height: 44,
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(90),
-                  border: Border.all(
-                    width: 1,
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white.withValues(alpha: 0.2)
-                        : Colors.grey.shade200,
-                  ),
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white.withValues(alpha: 0.1)
-                      : Colors.white,
-                ),
-                child: TextButton(
-                  onPressed: () {
-                    prov.resetIndex();
-                    //
-                    PocketBaseDb.instance.pb.authStore.clear();
-                    //
-                    if (!context.mounted) return;
-                    Navigator.pushReplacementNamed(context, "/authGate");
-                    //
-                  },
-                  child: Text(
-                    "Se déconnecter",
-                    style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+              GestureDetector(
+                onTap: () => prov.signOutDialog(context),
+                child: Container(
+                  margin: const EdgeInsets.only(right: 16),
+                  height: 44,
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(90),
+                    border: Border.all(
+                      width: 1,
                       color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white
-                          : Colors.red,
+                          ? Colors.white.withValues(alpha: 0.2)
+                          : Colors.grey.shade200,
                     ),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white.withValues(alpha: 0.1)
+                        : Colors.white,
+                  ),
+                  child: Row(
+                    children: [
+                      HugeIcon(
+                        icon: HugeIcons.strokeRoundedLogout02,
+                        size: 22,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.red,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        "Déconnexion",
+                        style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.red,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

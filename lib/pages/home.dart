@@ -5,14 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:track_depenses/helpers/pocketBaseHelper/pocketbase_db.dart';
-import 'package:track_depenses/helpers/pocketBaseHelper/trx_db.dart';
 import 'package:track_depenses/pages/closed_missions.dart';
 import 'package:track_depenses/pages/profile.dart';
-import 'package:track_depenses/widgets/missions_stream_wrapper.dart';
+import 'package:track_depenses/widgets/missions_list_view.dart';
 import 'package:track_depenses/widgets/new_mission.dart';
 
 import '../models/transaction_model.dart';
-
+import '../providers/transaction_provider.dart';
 import '../providers/user_provider.dart';
 
 class Home extends StatefulWidget {
@@ -24,8 +23,6 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   ///
-  late Stream<List<Mission>> _missionsEnCoursStream;
-
   final TextEditingController searchMissionController = TextEditingController();
   Timer? _searchDebounce;
 
@@ -33,17 +30,36 @@ class _HomeState extends State<Home> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final prov = Provider.of<UserProvider>(context, listen: false);
-      prov.setSelectedIndex(0);
+      final userProv = Provider.of<UserProvider>(context, listen: false);
+      userProv.setSelectedIndex(0);
+      //
+      final trxProv = Provider.of<TransactionProvider>(context, listen: false);
+      trxProv.fetchMissions(
+        isClosed: false,
+        searchQuery: searchMissionController.text,
+      );
+      //
     });
-    _initStreams();
   }
 
-  void _initStreams() {
-    _missionsEnCoursStream = TrxDb.instance.fetchMissionsOnPb(
-      searchMissionController.text,
-      false,
-    );
+  void _onSearchChanged(String value) {
+    if (_searchDebounce?.isActive ?? false) {
+      _searchDebounce!.cancel();
+    }
+
+    _searchDebounce = Timer(const Duration(milliseconds: 400), () {
+      if (value.isEmpty) {
+        context.read<TransactionProvider>().fetchMissions(
+          isClosed: false,
+          searchQuery: '',
+        );
+      } else {
+        context.read<TransactionProvider>().fetchMissions(
+          isClosed: false,
+          searchQuery: value,
+        );
+      }
+    });
   }
 
   @override
@@ -65,7 +81,15 @@ class _HomeState extends State<Home> {
         //
         return const NewMission();
       },
-    );
+    ).then((val) {
+      if (!context.mounted) return;
+      if (val != null && val is Mission) {
+        context.read<TransactionProvider>().fetchMissions(
+          isClosed: false,
+          searchQuery: '',
+        );
+      }
+    });
   }
 
   ///
@@ -75,8 +99,8 @@ class _HomeState extends State<Home> {
     final currentUser = PocketBaseDb.instance.pb.authStore.record;
 
     ///
-    return Consumer<UserProvider>(
-      builder: (_, prov, _) {
+    return Consumer2<UserProvider, TransactionProvider>(
+      builder: (_, prov, trxProv, _) {
         ///
 
         ///
@@ -175,19 +199,7 @@ class _HomeState extends State<Home> {
                     padding: const EdgeInsets.all(16.0),
                     child: SearchBar(
                       controller: searchMissionController,
-                      onChanged: (val) {
-                        if (_searchDebounce?.isActive ?? false) {
-                          _searchDebounce?.cancel();
-                        }
-                        _searchDebounce = Timer(
-                          const Duration(milliseconds: 500),
-                          () {
-                            setState(() {
-                              _initStreams();
-                            });
-                          },
-                        );
-                      },
+                      onChanged: _onSearchChanged,
                       elevation: const WidgetStatePropertyAll(0),
                       onTapOutside: (pointer) {
                         FocusManager.instance.primaryFocus?.unfocus();
@@ -207,9 +219,8 @@ class _HomeState extends State<Home> {
                       trailing: [
                         IconButton(
                           onPressed: () {
-                            setState(() {
-                              searchMissionController.clear();
-                            });
+                            searchMissionController.clear();
+                            _onSearchChanged('');
                           },
                           icon: Icon(
                             CupertinoIcons.multiply,
@@ -230,13 +241,15 @@ class _HomeState extends State<Home> {
 
                   /// Tab content
                   Expanded(
-                    child:
-                        /// Missions en cours
-                        MissionsStreamWrapper(
-                          missionsStream: _missionsEnCoursStream,
-                          emptyState: _buildEmptyState(context),
-                          title: "Mes missions en cours",
-                        ),
+                    child: trxProv.isLoading
+                        ? const Center(
+                            child: CircularProgressIndicator.adaptive(),
+                          )
+                        : MissionsListView(
+                            emptyState: _buildEmptyState(context),
+                            title: "Mes missions en cours",
+                            missions: trxProv.missions,
+                          ),
                   ),
                 ],
               ),

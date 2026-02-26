@@ -36,7 +36,6 @@ class _NewExpenseState extends State<NewExpense> {
             widget.depenseToEdit!.categorie,
           ),
         );
-        prov.imageJustificatif = null;
       } else {
         prov.clearControllers();
       }
@@ -245,7 +244,7 @@ class _NewExpenseState extends State<NewExpense> {
                                               )
                                             : Colors.white,
                                         borderColor: Colors.grey.shade200,
-                                        textEntry: 'Gallery',
+                                        textEntry: 'Galerie',
                                       ),
                                     ),
                                     const SizedBox(width: 12),
@@ -319,21 +318,14 @@ class _NewExpenseState extends State<NewExpense> {
                 MaterialButton(
                   onPressed: () async {
                     if (prov.isLoading) return;
+                    if (widget.mission.id == null) {
+                      _snackBar("⚠️ • Mission invalide");
+                      return;
+                    }
                     //
                     if (prov.selectedIndex == -1) {
                       if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            "⚠️️ • Veuillez sélectionner une catégorie",
-                            style: Theme.of(context).textTheme.bodyMedium!
-                                .copyWith(color: Colors.white),
-                          ),
-                          backgroundColor: Colors.red,
-                          behavior: SnackBarBehavior.floating,
-                          shape: const StadiumBorder(),
-                        ),
-                      );
+                      _snackBar("⚠️️ • Veuillez sélectionner une catégorie");
                       return;
                     }
                     //
@@ -343,6 +335,10 @@ class _NewExpenseState extends State<NewExpense> {
                     final amountExpense = double.parse(
                       prov.montantDepenseController.text.trim(),
                     );
+                    if (amountExpense.toString().isEmpty) {
+                      _snackBar("⚠️️ • Veuillez entrer un montant");
+                      return;
+                    }
                     if (amountExpense > amountBudget) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -357,7 +353,7 @@ class _NewExpenseState extends State<NewExpense> {
                         ),
                       );
                       return;
-                    }  
+                    }
                     //
                     final newDepense = Depense(
                       montant: double.parse(
@@ -368,28 +364,29 @@ class _NewExpenseState extends State<NewExpense> {
                       ),
                       description: prov.descriptionDepenseController.text
                           .trim(),
-                      missionId: widget.mission.id ?? '',
+                      missionId: widget.mission.id!,
                     );
                     //
                     if (widget.depenseToEdit != null) {
                       await prov.updateDepenseOnPb(
-                        missionId: widget.mission.id!,
+                        mission: widget.mission,
                         depenseId: widget.depenseToEdit!.id!,
                         data: newDepense.toMap(),
                       );
-                    } else {
-                      //
-                      if (widget.mission.id == null) return;
-                      prov.addDepenseToPb(
+                    } else if (widget.mission.id != null) {
+                      await prov.addDepenseToPb(
                         depense: newDepense,
-                        missionId: widget.mission.id!,
+                        mission: widget.mission,
                       );
                     }
-                    prov.clearControllers();
                     //
                     if (!context.mounted) return;
+                    prov.clearControllers();
                     Navigator.of(context).pop();
                     //
+                    prov.fetchTrx(missionId: widget.mission.id!, queryString: '');
+                    //
+                    if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
@@ -429,6 +426,22 @@ class _NewExpenseState extends State<NewExpense> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  void _snackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium!.copyWith(color: Colors.white),
+        ),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: const StadiumBorder(),
       ),
     );
   }

@@ -158,7 +158,7 @@ class _ExpenseDetailState extends State<ExpenseDetail> {
           body: Stack(
             children: [
               /// Normal content
-              Padding(
+              SingleChildScrollView(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -421,25 +421,16 @@ class _ExpenseDetailState extends State<ExpenseDetail> {
                                   borderRadius: BorderRadius.circular(8),
                                   child: Builder(
                                     builder: (context) {
-                                      //
-                                      ///* http://127.0.0.1:8090/api/files/COLLECTION_ID_OR_NAME/RECORD_ID/FILENAME */
-                                      //
-                                      final baseUrl = trxDb.pb.baseURL;
-                                      final collectionName = widget.isEntree
-                                          ? "entrees"
-                                          : "depenses";
-                                      final recordId = currentTrx.id;
                                       final fileName = currentTrx.justificatif;
-                                      //
-                                      final imageUrl =
-                                          "$baseUrl/api/files/$collectionName/$recordId/$fileName";
+
+                                      final imageUrl = trxDb.pb.files
+                                          .getUrl(currentTrx.record, fileName!)
+                                          .toString();
+
                                       log("Path justificatif: $imageUrl");
-                                      //
+
                                       return Image.network(
                                         imageUrl,
-                                        headers: const {
-                                          "ngrok-skip-browser-warning": "1",
-                                        },
                                         loadingBuilder:
                                             (
                                               context,
@@ -447,7 +438,11 @@ class _ExpenseDetailState extends State<ExpenseDetail> {
                                               loadingProgress,
                                             ) => loadingProgress == null
                                             ? child
-                                            : const CircularProgressIndicator.adaptive(),
+                                            : const Padding(
+                                                padding: EdgeInsets.all(50.0),
+                                                child:
+                                                    CircularProgressIndicator.adaptive(),
+                                              ),
                                         errorBuilder:
                                             (context, error, stackTrace) =>
                                                 const Icon(Icons.broken_image),
@@ -488,9 +483,7 @@ class _ExpenseDetailState extends State<ExpenseDetail> {
                                   : Colors.white,
                               child: const Text(
                                 "Supprimer",
-                                style: TextStyle(
-                                  color: Colors.red,
-                                ),
+                                style: TextStyle(color: Colors.red),
                               ),
                             ),
                           ),

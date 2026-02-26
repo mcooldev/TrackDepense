@@ -7,7 +7,6 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:intl/intl.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:provider/provider.dart';
-import 'package:track_depenses/helpers/pocketBaseHelper/trx_db.dart';
 import 'package:track_depenses/providers/share_files_providers.dart';
 import 'package:track_depenses/widgets/expense_detail.dart';
 import 'package:track_depenses/widgets/new_entree.dart';
@@ -15,6 +14,7 @@ import 'package:track_depenses/widgets/new_mission.dart';
 
 import '../models/transaction_model.dart';
 import '../providers/transaction_provider.dart';
+import '../providers/user_provider.dart';
 import '../widgets/add_entry_widget.dart';
 import '../widgets/new_expense.dart';
 
@@ -30,11 +30,11 @@ class MissionDetail extends StatefulWidget {
 class _MissionDetailState extends State<MissionDetail> {
   ///
 
+  late Mission currentMission;
+
   final searchController = TextEditingController();
 
   Timer? _searchDebounce;
-
-  late Mission currentMission;
 
   final formatter = NumberFormat.currency(
     locale: 'fr_FR',
@@ -50,15 +50,23 @@ class _MissionDetailState extends State<MissionDetail> {
       useSafeArea: true,
       showDragHandle: true,
       context: context,
-      builder: (context) {
-        return child;
-      },
-    ).then((val) {
-      if (!mounted) return;
+      builder: (context) => child,
+    ).then((val) async {
+      if (!context.mounted) return;
       if (val != null && val is Mission) {
-        setState(() {
-          currentMission = val;
-        });
+        final prov = context.read<TransactionProvider>();
+        //
+        final updatedMission = await prov.updateMissionToPb(mission: val);
+        prov;
+        if (updatedMission != null && mounted) {
+          setState(() {
+            currentMission = updatedMission;
+          });
+          await prov.fetchTrx(
+            missionId: currentMission.id!,
+            queryString: searchController.text,
+          );
+        }
       }
     });
   }
@@ -66,11 +74,30 @@ class _MissionDetailState extends State<MissionDetail> {
   @override
   void initState() {
     super.initState();
+    //
     currentMission = widget.mission;
     //
-    if (currentMission.id == null) {
-      Navigator.of(context).pushNamedAndRemoveUntil("/home", (route) => false);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.mission.id == null) Navigator.of(context).pop();
+      final trxProv = Provider.of<TransactionProvider>(context, listen: false);
+      trxProv.fetchTrx(
+        missionId: currentMission.id!,
+        queryString: searchController.text,
+      );
+    });
+  }
+
+  void _onSearchChanged(String value) {
+    if (_searchDebounce?.isActive ?? false) {
+      _searchDebounce!.cancel();
     }
+
+    _searchDebounce = Timer(const Duration(milliseconds: 400), () {
+      context.read<TransactionProvider>().fetchTrx(
+        missionId: currentMission.id!,
+        queryString: value,
+      );
+    });
   }
 
   @override
@@ -85,108 +112,54 @@ class _MissionDetailState extends State<MissionDetail> {
   Widget build(BuildContext context) {
     ///
     final shareProv = Provider.of<ShareFilesProvider>(context, listen: false);
-    final trxDb = TrxDb.instance;
+    final userProv = Provider.of<UserProvider>(context, listen: false);
 
     ///
     return Consumer<TransactionProvider>(
       builder: (context, prov, child) {
-        return StreamBuilder(
-          stream: trxDb.fetchEntreesAndDepensesOnPb(
-            widget.mission.id ?? '',
-            searchController.text.trim(),
-          ),
-          builder: (context, snapshot) {
-            ///
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator.adaptive()),
+        ///
+        final filteredTxnList = prov.allTrx;
+        //
+        final opEntrees = filteredTxnList.whereType<Entree>().toList();
+        final opDepenses = filteredTxnList.whereType<Depense>().toList();
+        //
+        double dynamicCapital = opEntrees.fold(0.0, (sum, e) => sum + e.montant) -
+            opDepenses.fold(0.0, (sum, d) => sum + d.montant);
+        if (dynamicCapital < 0) dynamicCapital = 0;
+        //
+        if (dynamicCapital < 0) {
+          dynamicCapital = 0;
+        }
+        //
+        final calculatedPercent = currentMission.amountGoal == null
+            ? 0.0
+            : prov.calculatePercent(
+                dynamicCapital,
+                currentMission.amountGoal!,
               );
-            }
-            //
-            if (snapshot.hasError) {
-              return const Center(
-                child: Text(
-                  "Une erreur s'est produite lors du chargement des données.",
-                ),
-              );
-            }
-
-            ///
-            final filteredTxnList = snapshot.data ?? [];
-            //
-            final opEntrees = filteredTxnList.whereType<Entree>().toList();
-            final opDepenses = filteredTxnList.whereType<Depense>().toList();
-            //
-            final totalEntrees = opEntrees.fold<double>(
-              0,
-              (prev, current) => prev + current.montant,
-            );
-            final totalDepenses = opDepenses.fold<double>(
-              0,
-              (prev, current) => prev + current.montant,
-            );
-            //
-            double dynamicCapital = totalEntrees - totalDepenses;
-            //
-            if (dynamicCapital < 0) {
-              dynamicCapital = 0;
-            }
-            //
-            final calculatedPercent = currentMission.amountGoal == null
-                ? 0.0
-                : prov.calculatePercent(
-                    dynamicCapital,
-                    currentMission.amountGoal!,
-                  );
-            final textPercent =
-                "${(calculatedPercent * 100).toStringAsFixed(0)}%";
-            //
-            ///
-            return Scaffold(
-              ///
-              appBar: AppBar(
-                actions: [
-                  if (!currentMission.isClosed)
-                    // Update mission
-                    GestureDetector(
-                      onTap: () {
-                        // todo: update mission
-                        _showBottomSheet(
-                          context,
-                          NewMission(missionToEdit: currentMission),
-                          true,
-                        );
-                        //
-                      },
-                      child: Container(
-                        margin: const EdgeInsets.only(right: 16),
-                        height: 44,
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(90),
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white.withValues(alpha: 0.1)
-                              : Colors.white,
-                          border: Border.all(
-                            width: 1,
-                            color:
-                                Theme.of(context).brightness == Brightness.dark
-                                ? Colors.white.withValues(alpha: 0.2)
-                                : Colors.grey.shade200,
-                          ),
-                        ),
-                        child: HugeIcon(
-                          icon: HugeIcons.strokeRoundedEdit02,
-                          color: Theme.of(context).colorScheme.primary,
-                          size: 24.0,
-                        ),
-                      ),
-                    ),
-                  // Delete mission
-                  Container(
+        final textPercent = "${(calculatedPercent * 100).toStringAsFixed(0)}%";
+        //
+        ///
+        return Scaffold(
+          ///
+          appBar: AppBar(
+            actions: [
+              if (!currentMission.isClosed)
+                // Update mission
+                GestureDetector(
+                  onTap: () {
+                    // todo: update mission
+                    _showBottomSheet(
+                      context,
+                      NewMission(missionToEdit: currentMission),
+                      true,
+                    );
+                    //
+                  },
+                  child: Container(
                     margin: const EdgeInsets.only(right: 16),
                     height: 44,
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(90),
                       color: Theme.of(context).brightness == Brightness.dark
@@ -199,378 +172,382 @@ class _MissionDetailState extends State<MissionDetail> {
                             : Colors.grey.shade200,
                       ),
                     ),
-                    child: TextButton(
-                      onPressed: () async {
-                        await prov.deleteMissionDialog(context, widget.mission);
-                      },
-                      child: Text(
-                        "Supprimer",
-                        style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white
-                              : Colors.red,
-                        ),
-                      ),
+                    child: HugeIcon(
+                      icon: HugeIcons.strokeRoundedEdit02,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 24.0,
                     ),
                   ),
-                ],
+                ),
+              // Delete mission
+              Container(
+                margin: const EdgeInsets.only(right: 16),
+                height: 44,
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(90),
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white.withValues(alpha: 0.1)
+                      : Colors.white,
+                  border: Border.all(
+                    width: 1,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white.withValues(alpha: 0.2)
+                        : Colors.grey.shade200,
+                  ),
+                ),
+                child: TextButton(
+                  onPressed: () async {
+                    await prov.deleteMissionDialog(context, currentMission);
+                  },
+                  child: Text(
+                    "Supprimer",
+                    style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : Colors.red,
+                    ),
+                  ),
+                ),
               ),
+            ],
+          ),
 
-              ///
-              body: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
-                child: Column(
+          ///
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Mission name, date and state
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Mission name, date and state
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    // Mission name
+                    Text(
+                      currentMission.nom,
+                      style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    // Mission date
+                    Text(
+                      "Du ${formattedDate.format(currentMission.dateDebut)} • Au ${formattedDate.format(currentMission.dateFin)}",
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
                       children: [
-                        // Mission name
-                        Text(
-                          currentMission.nom,
-                          style: Theme.of(context).textTheme.titleLarge!
-                              .copyWith(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w600,
+                        // Mission state
+                        Container(
+                          padding: const EdgeInsets.fromLTRB(8, 6, 12, 6),
+                          decoration: BoxDecoration(
+                            color: currentMission.isClosed == true
+                                ? Colors.red
+                                : Colors.green,
+                            borderRadius: BorderRadius.circular(80),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                currentMission.isClosed
+                                    ? CupertinoIcons.archivebox
+                                    : CupertinoIcons.arrow_right,
+                                size: 20,
+                                color: Colors.white,
                               ),
+                              const SizedBox(width: 8),
+                              Text(
+                                currentMission.isClosed == true
+                                    ? "Clôturée"
+                                    : "En cours",
+                                style: Theme.of(context).textTheme.bodyMedium!
+                                    .copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                              ),
+                            ],
+                          ),
                         ),
-                        const SizedBox(height: 6),
-                        // Mission date
-                        Text(
-                          "Du ${formattedDate.format(currentMission.dateDebut)} • Au ${formattedDate.format(currentMission.dateFin)}",
-                          style: Theme.of(context).textTheme.bodyLarge,
-                        ),
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            // Mission state
-                            Container(
+                        // Mission amount goal
+                        if (currentMission.amountGoal != null)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 8.0),
+                            child: Container(
                               padding: const EdgeInsets.fromLTRB(8, 6, 12, 6),
                               decoration: BoxDecoration(
-                                color: currentMission.isClosed == true
-                                    ? Colors.red
-                                    : Colors.green,
+                                color: Theme.of(context).colorScheme.secondary,
                                 borderRadius: BorderRadius.circular(80),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
-                                    currentMission.isClosed
-                                        ? CupertinoIcons.archivebox
-                                        : CupertinoIcons.arrow_right,
+                                    CupertinoIcons.rocket,
                                     size: 20,
-                                    color: Colors.white,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSecondary,
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    currentMission.isClosed == true
-                                        ? "Clôturée"
-                                        : "En cours",
+                                    formatter.format(
+                                      currentMission.amountGoal ?? 0.0,
+                                    ),
                                     style: Theme.of(context)
                                         .textTheme
                                         .bodyMedium!
                                         .copyWith(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w600,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSecondary,
+                                          fontWeight: FontWeight.bold,
                                         ),
                                   ),
                                 ],
                               ),
                             ),
-                            // Mission amount goal
-                            if (currentMission.amountGoal != null)
-                              Padding(
-                                padding: const EdgeInsets.only(left: 8.0),
-                                child: Container(
-                                  padding: const EdgeInsets.fromLTRB(8, 6, 12, 6),
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.secondary,
-                                    borderRadius: BorderRadius.circular(80),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        CupertinoIcons.rocket,
-                                        size: 20,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onSecondary,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        formatter.format(
-                                          currentMission.amountGoal ?? 0.0,
-                                        ),
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodyMedium!
-                                            .copyWith(
-                                              color: Theme.of(
-                                                context,
-                                              ).colorScheme.onSecondary,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
+                          ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-
-                    /// Mission summary
-                    missionSummaryContainer(
-                      context,
-                      currentMission,
-                      filteredTxnList,
-                      opEntrees,
-                      opDepenses,
-                      calculatedPercent,
-                      textPercent,
-                      dynamicCapital,
-                    ),
-                    const SizedBox(height: 16),
-
-                    /// Mark mission as closed
-                    if (currentMission.isClosed == false)
-                      Column(
-                        children: [
-                          MaterialButton(
-                            onPressed: () async {
-                              await prov.closeMissionDialog(
-                                context: context,
-                                mission: currentMission,
-                              );
-                            },
-                            splashColor: Theme.of(
-                              context,
-                            ).colorScheme.error.withValues(alpha: 0.15),
-                            color:
-                                Theme.of(context).brightness == Brightness.dark
-                                ? Colors.white.withValues(alpha: 0.1)
-                                : Colors.white,
-                            elevation: 0,
-                            height: 50,
-                            minWidth: double.infinity,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(90),
-                              side: BorderSide(
-                                color:
-                                    Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? Colors.white.withValues(alpha: 0.2)
-                                    : Colors.grey.shade200,
-                                width: 1,
-                              ),
-                            ),
-                            child: Text(
-                              "Clôturer la mission",
-                              style: Theme.of(context).textTheme.titleMedium!
-                                  .copyWith(fontSize: 17, color: Colors.red),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-                      )
-                    else
-                      Column(
-                        children: [
-                          // Share mission receipt as pdf
-                          MaterialButton(
-                            onPressed: () {
-                              // todo: share mission receipt as pdf
-                              shareProv.createAndSharePdf(
-                                context,
-                                currentMission,
-                                filteredTxnList,
-                              );
-                            },
-                            splashColor: Theme.of(
-                              context,
-                            ).colorScheme.primary.withValues(alpha: 0.15),
-                            color: Theme.of(context).colorScheme.primary,
-                            elevation: 0,
-                            height: 50,
-                            minWidth: double.infinity,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(90),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(
-                                  CupertinoIcons.share,
-                                  size: 20,
-                                  color: Colors.white,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  "Partager le rapport • PDF",
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleMedium!
-                                      .copyWith(
-                                        fontSize: 17,
-                                        color: Colors.white,
-                                      ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          // Preview mission receipt as pdf
-                          MaterialButton(
-                            onPressed: () {
-                              // todo: preview mission receipt as pdf
-                              shareProv.previewPdf(
-                                context,
-                                currentMission,
-                                filteredTxnList,
-                              );
-                            },
-                            splashColor: Theme.of(
-                              context,
-                            ).colorScheme.primary.withValues(alpha: 0.15),
-                            color:
-                                Theme.of(context).brightness == Brightness.dark
-                                ? Colors.white.withValues(alpha: 0.1)
-                                : Colors.white,
-                            elevation: 0,
-                            height: 50,
-                            minWidth: double.infinity,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(90),
-                              side: BorderSide(
-                                color:
-                                    Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? Colors.white.withValues(alpha: 0.2)
-                                    : Colors.grey.shade200,
-                                width: 1,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  CupertinoIcons.eye,
-                                  size: 20,
-                                  color:
-                                      Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? Colors.white
-                                      : Theme.of(context).colorScheme.primary,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  "Aperçu du rapport • PDF",
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleMedium!
-                                      .copyWith(
-                                        fontSize: 17,
-                                        color:
-                                            Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? Colors.white
-                                            : Theme.of(
-                                                context,
-                                              ).colorScheme.primary,
-                                      ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-                      ),
-
-                    // History headline
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          "Historique",
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                        Text(
-                          "${filteredTxnList.length.toString().padLeft(2, '0')} opération${filteredTxnList.length == 1 ? '' : 's'}",
-                          style: TextStyle(
-                            fontSize: 16,
-                            color:
-                                Theme.of(context).brightness == Brightness.dark
-                                ? Colors.white70
-                                : CupertinoColors.systemGrey,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-
-                    // Search bar for history
-                    SearchBar(
-                      controller: searchController,
-                      onChanged: (query) {
-                        //
-                        if (_searchDebounce?.isActive ?? false) {
-                          _searchDebounce!.cancel();
-                        }
-                        //
-                        _searchDebounce = Timer(
-                          const Duration(milliseconds: 500),
-                          () {
-                            setState(() {
-                              searchController.text = query.trim();
-                            });
-                          },
-                        );
-                        //
-                      },
-                      onTap: () {},
-                      elevation: const WidgetStatePropertyAll(0),
-                      onTapOutside: (pointer) {
-                        FocusManager.instance.primaryFocus?.unfocus();
-                      },
-                      leading: Icon(
-                        CupertinoIcons.search,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                      padding: const WidgetStatePropertyAll(
-                        EdgeInsets.only(left: 20),
-                      ),
-                      backgroundColor: WidgetStatePropertyAll(
-                        Theme.of(context).brightness == Brightness.dark
-                            ? Colors.black.withValues(alpha: 0.5)
-                            : Colors.grey.shade100,
-                      ),
-                      hintText: "Chercher une entrée ou dépense",
-                      hintStyle: WidgetStatePropertyAll(
-                        Theme.of(context).textTheme.bodyLarge,
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-                    // History list
-                    filteredTxnList.isEmpty
-                        ? emptyTrxContainer(context)
-                        : trxListContainer(
-                            context,
-                            filteredTxnList,
-                            currentMission,
-                          ),
                   ],
                 ),
-              ),
-            );
-          },
+                const SizedBox(height: 16),
+
+                /// Mission summary
+                missionSummaryContainer(
+                  context,
+                  currentMission,
+                  filteredTxnList,
+                  opEntrees,
+                  opDepenses,
+                  calculatedPercent,
+                  textPercent,
+                  dynamicCapital,
+                ),
+                const SizedBox(height: 16),
+
+                /// Mark mission as closed
+                if (currentMission.isClosed == false)
+                  Column(
+                    children: [
+                      MaterialButton(
+                        onPressed: () async {
+                          await prov.closeMissionDialog(
+                            context: context,
+                            mission: currentMission,
+                            prov: userProv,
+                          );
+                        },
+                        splashColor: Theme.of(
+                          context,
+                        ).colorScheme.error.withValues(alpha: 0.15),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white.withValues(alpha: 0.1)
+                            : Colors.white,
+                        elevation: 0,
+                        height: 50,
+                        minWidth: double.infinity,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(90),
+                          side: BorderSide(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white.withValues(alpha: 0.2)
+                                : Colors.grey.shade200,
+                            width: 1,
+                          ),
+                        ),
+                        child: Text(
+                          "Clôturer la mission",
+                          style: Theme.of(context).textTheme.titleMedium!
+                              .copyWith(fontSize: 17, color: Colors.red),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  )
+                else
+                  Column(
+                    children: [
+                      // Share mission receipt as pdf
+                      MaterialButton(
+                        onPressed: () {
+                          // todo: share mission receipt as pdf
+                          shareProv.createAndSharePdf(
+                            context,
+                            currentMission,
+                            filteredTxnList,
+                          );
+                        },
+                        splashColor: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.15),
+                        color: Theme.of(context).colorScheme.primary,
+                        elevation: 0,
+                        height: 50,
+                        minWidth: double.infinity,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(90),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              CupertinoIcons.share,
+                              size: 20,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              "Partager le rapport • PDF",
+                              style: Theme.of(context).textTheme.titleMedium!
+                                  .copyWith(fontSize: 17, color: Colors.white),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      // Preview mission receipt as pdf
+                      MaterialButton(
+                        onPressed: () {
+                          // todo: preview mission receipt as pdf
+                          shareProv.previewPdf(
+                            context,
+                            currentMission,
+                            filteredTxnList,
+                          );
+                        },
+                        splashColor: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.15),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white.withValues(alpha: 0.1)
+                            : Colors.white,
+                        elevation: 0,
+                        height: 50,
+                        minWidth: double.infinity,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(90),
+                          side: BorderSide(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white.withValues(alpha: 0.2)
+                                : Colors.grey.shade200,
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              CupertinoIcons.eye,
+                              size: 20,
+                              color:
+                                  Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white
+                                  : Theme.of(context).colorScheme.primary,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              "Aperçu du rapport • PDF",
+                              style: Theme.of(context).textTheme.titleMedium!
+                                  .copyWith(
+                                    fontSize: 17,
+                                    color:
+                                        Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.white
+                                        : Theme.of(context).colorScheme.primary,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+
+                // History headline
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Historique",
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    Text(
+                      "${filteredTxnList.length.toString().padLeft(2, '0')} opération${filteredTxnList.length == 1 ? '' : 's'}",
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white70
+                            : CupertinoColors.systemGrey,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                // Search bar for history
+                SearchBar(
+                  controller: searchController,
+                  onChanged: _onSearchChanged,
+                  onTap: () {},
+                  elevation: const WidgetStatePropertyAll(0),
+                  onTapOutside: (pointer) {
+                    FocusManager.instance.primaryFocus?.unfocus();
+                  },
+                  leading: Icon(
+                    CupertinoIcons.search,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                  trailing: [
+                    IconButton(
+                      onPressed: () {
+                        searchController.clear();
+                        _onSearchChanged('');
+                      },
+                      icon: Icon(
+                        CupertinoIcons.multiply,
+                        color: Colors.grey.shade300,
+                      ),
+                      splashColor: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.15),
+                    ),
+                  ],
+                  padding: const WidgetStatePropertyAll(
+                    EdgeInsets.only(left: 20),
+                  ),
+                  backgroundColor: WidgetStatePropertyAll(
+                    Theme.of(context).brightness == Brightness.dark
+                        ? Colors.black.withValues(alpha: 0.5)
+                        : Colors.grey.shade100,
+                  ),
+                  hintText: "Chercher une entrée ou dépense",
+                  hintStyle: WidgetStatePropertyAll(
+                    Theme.of(context).textTheme.bodyLarge,
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+                // History list
+                filteredTxnList.isEmpty
+                    ? emptyTrxContainer(context)
+                    : trxListContainer(
+                        context,
+                        filteredTxnList,
+                        currentMission,
+                      ),
+              ],
+            ),
+          ),
         );
       },
     );
@@ -747,8 +724,8 @@ class _MissionDetailState extends State<MissionDetail> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                subtitle: Text(
-                  formattedDate.format(op.createdAt),
+                subtitle: Text( op.createdAt != null ?
+                  formattedDate.format(op.createdAt) : "XX/XX/XXXX",
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
                 trailing: op is Entree

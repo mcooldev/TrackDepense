@@ -9,9 +9,8 @@ import 'package:track_depenses/pages/profile.dart';
 import 'package:track_depenses/providers/user_provider.dart';
 
 import '../helpers/pocketBaseHelper/pocketbase_db.dart';
-import '../helpers/pocketBaseHelper/trx_db.dart';
-import '../models/transaction_model.dart';
-import '../widgets/missions_stream_wrapper.dart';
+import '../providers/transaction_provider.dart';
+import '../widgets/missions_list_view.dart';
 
 class ClosedMissions extends StatefulWidget {
   const ClosedMissions({super.key});
@@ -22,8 +21,6 @@ class ClosedMissions extends StatefulWidget {
 
 class _ClosedMissionsState extends State<ClosedMissions> {
   ///
-  late Stream<List<Mission>> _missionsClotureesStream;
-
   final TextEditingController searchMissionController = TextEditingController();
   Timer? _searchDebounce;
 
@@ -33,15 +30,34 @@ class _ClosedMissionsState extends State<ClosedMissions> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final prov = Provider.of<UserProvider>(context, listen: false);
       prov.setSelectedIndex(1);
+      //
+      final trxProv = Provider.of<TransactionProvider>(context, listen: false);
+      trxProv.fetchMissions(
+        isClosed: true,
+        searchQuery: searchMissionController.text.trim(),
+      );
+      //
     });
-    _initStreams();
   }
 
-  void _initStreams() {
-    _missionsClotureesStream = TrxDb.instance.fetchMissionsOnPb(
-      searchMissionController.text,
-      true,
-    );
+  void _onSearchChanged(String value) {
+    if (_searchDebounce?.isActive ?? false) {
+      _searchDebounce!.cancel();
+    }
+
+    _searchDebounce = Timer(const Duration(milliseconds: 400), () {
+      if (value.isEmpty) {
+        context.read<TransactionProvider>().fetchMissions(
+          isClosed: true,
+          searchQuery: '',
+        );
+      } else {
+        context.read<TransactionProvider>().fetchMissions(
+          isClosed: true,
+          searchQuery: value,
+        );
+      }
+    });
   }
 
   @override
@@ -58,8 +74,8 @@ class _ClosedMissionsState extends State<ClosedMissions> {
     final currentUser = PocketBaseDb.instance.pb.authStore.record;
 
     ///
-    return Consumer<UserProvider>(
-      builder: (_, prov, _) {
+    return Consumer2<UserProvider, TransactionProvider>(
+      builder: (_, prov, trxProv, _) {
         return Scaffold(
           appBar: AppBar(
             title: Row(
@@ -111,19 +127,7 @@ class _ClosedMissionsState extends State<ClosedMissions> {
                     padding: const EdgeInsets.all(16.0),
                     child: SearchBar(
                       controller: searchMissionController,
-                      onChanged: (val) {
-                        if (_searchDebounce?.isActive ?? false) {
-                          _searchDebounce?.cancel();
-                        }
-                        _searchDebounce = Timer(
-                          const Duration(milliseconds: 500),
-                          () {
-                            setState(() {
-                              _initStreams();
-                            });
-                          },
-                        );
-                      },
+                      onChanged: _onSearchChanged,
                       elevation: const WidgetStatePropertyAll(0),
                       onTapOutside: (pointer) {
                         FocusManager.instance.primaryFocus?.unfocus();
@@ -143,9 +147,8 @@ class _ClosedMissionsState extends State<ClosedMissions> {
                       trailing: [
                         IconButton(
                           onPressed: () {
-                            setState(() {
-                              searchMissionController.clear();
-                            });
+                            searchMissionController.clear();
+                            _onSearchChanged('');
                           },
                           icon: Icon(
                             CupertinoIcons.multiply,
@@ -166,13 +169,15 @@ class _ClosedMissionsState extends State<ClosedMissions> {
 
                   /// Tab content
                   Expanded(
-                    child:
-                        /// Missions en cours
-                        MissionsStreamWrapper(
-                          missionsStream: _missionsClotureesStream,
-                          emptyState: emptyClosedMissionContainer(context),
-                          title: "Mes missions clôturées",
-                        ),
+                    child: trxProv.isLoading
+                        ? const Center(
+                            child: CircularProgressIndicator.adaptive(),
+                          )
+                        : MissionsListView(
+                            emptyState: emptyClosedMissionContainer(context),
+                            title: "Mes missions clôturées",
+                            missions: trxProv.missions,
+                          ),
                   ),
                 ],
               ),

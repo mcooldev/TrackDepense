@@ -35,11 +35,10 @@ class _NewEntreeState extends State<NewEntree> {
             widget.entreeToEdit!.categorie,
           ),
         );
-        prov.montanEntreetController.text = widget.entreeToEdit!.montant
+        prov.montanEntreeController.text = widget.entreeToEdit!.montant
             .toStringAsFixed(0);
         prov.descriptionEntreeController.text =
             widget.entreeToEdit!.description;
-        prov.imageJustificatif = null;
       } else {
         prov.clearControllers();
       }
@@ -72,12 +71,12 @@ class _NewEntreeState extends State<NewEntree> {
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: 8,
                     gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 4,
-                          crossAxisSpacing: 8,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 1,
-                        ),
+                    const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 4,
+                      crossAxisSpacing: 8,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: 1,
+                    ),
                     itemBuilder: (ctx, index) {
                       bool isSelected = index == prov.selectedIndex;
                       return MissionCategoryWidget(
@@ -99,7 +98,7 @@ class _NewEntreeState extends State<NewEntree> {
                 const SizedBox(height: 24),
                 // Montant de l'entrée
                 TextFormFieldWidget(
-                  controller: prov.montanEntreetController,
+                  controller: prov.montanEntreeController,
                   hintText: "Montant de l'entrée",
                   iconData: CupertinoIcons.money_dollar,
                   isLabel: true,
@@ -156,56 +155,56 @@ class _NewEntreeState extends State<NewEntree> {
                             : Colors.grey.shade100,
                         borderRadius: BorderRadius.circular(8),
                         border:
-                            (prov.imageJustificatif == null ||
-                                prov.imageJustificatif!.path.isEmpty)
+                        (prov.imageJustificatif == null ||
+                            prov.imageJustificatif!.path.isEmpty)
                             ? Border.all(
-                                width: 1,
-                                color:
-                                    Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? Colors.white.withValues(alpha: 0.1)
-                                    : Colors.grey.shade200,
-                              )
+                          width: 1,
+                          color:
+                          Theme.of(context).brightness ==
+                              Brightness.dark
+                              ? Colors.white.withValues(alpha: 0.1)
+                              : Colors.grey.shade200,
+                        )
                             : null,
                       ),
                       child:
-                          (prov.imageJustificatif == null &&
-                              (widget.entreeToEdit?.justificatif == null ||
-                                  widget.entreeToEdit!.justificatif!.isEmpty))
+                      (prov.imageJustificatif == null &&
+                          (widget.entreeToEdit?.justificatif == null ||
+                              widget.entreeToEdit!.justificatif!.isEmpty))
                           ? Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  CupertinoIcons.photo_fill_on_rectangle_fill,
-                                  size: 40,
-                                  color: Colors.grey.shade300,
-                                ),
-                                const SizedBox(width: 16),
-                                Text(
-                                  "Aucune image ajoutée",
-                                  style: Theme.of(context).textTheme.bodyLarge,
-                                ),
-                              ],
-                            )
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            CupertinoIcons.photo_fill_on_rectangle_fill,
+                            size: 40,
+                            color: Colors.grey.shade300,
+                          ),
+                          const SizedBox(width: 16),
+                          Text(
+                            "Aucune image ajoutée",
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
+                        ],
+                      )
                           : prov.imageJustificatif != null
                           ? Image.file(
-                              prov.imageJustificatif!,
-                              fit: BoxFit.cover,
-                            )
+                        prov.imageJustificatif!,
+                        fit: BoxFit.cover,
+                      )
                           : Image.network(
-                              "${trxDb.pb.baseURL}/api/files/entrees/${widget.entreeToEdit?.id ?? ''}/${widget.entreeToEdit?.justificatif ?? ''}",
-                              fit: BoxFit.cover,
-                              loadingBuilder:
-                                  (
-                                    context,
-                                    child,
-                                    loadingProgress,
-                                  ) => loadingProgress == null
-                                  ? child
-                                  : const CircularProgressIndicator.adaptive(),
-                              errorBuilder: (context, error, stackTrace) =>
-                                  const Icon(Icons.broken_image),
-                            ),
+                        "${trxDb.pb.baseURL}/api/files/entrees/${widget.entreeToEdit?.id ?? ''}/${widget.entreeToEdit?.justificatif ?? ''}",
+                        fit: BoxFit.cover,
+                        loadingBuilder:
+                            (
+                            context,
+                            child,
+                            loadingProgress,
+                            ) => loadingProgress == null
+                            ? child
+                            : const CircularProgressIndicator.adaptive(),
+                        errorBuilder: (context, error, stackTrace) =>
+                        const Icon(Icons.broken_image),
+                      ),
                     ),
                     const SizedBox(height: 12),
 
@@ -228,7 +227,7 @@ class _NewEntreeState extends State<NewEntree> {
                                 Row(
                                   mainAxisSize: MainAxisSize.max,
                                   mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                                  MainAxisAlignment.spaceBetween,
                                   crossAxisAlignment: CrossAxisAlignment.center,
 
                                   children: [
@@ -239,22 +238,22 @@ class _NewEntreeState extends State<NewEntree> {
                                           await prov
                                               .pickImageJustificatifFromGallery()
                                               .then((_) {
-                                                if (!context.mounted) return;
-                                                Navigator.of(context).pop();
-                                              });
+                                            if (!context.mounted) return;
+                                            Navigator.of(context).pop();
+                                          });
                                         },
                                         icon: CupertinoIcons.photo_on_rectangle,
                                         iconColor: Colors.black,
                                         textColor: Colors.black,
                                         containerBg:
-                                            Theme.of(context).brightness ==
-                                                Brightness.dark
+                                        Theme.of(context).brightness ==
+                                            Brightness.dark
                                             ? Colors.white.withValues(
-                                                alpha: 0.1,
-                                              )
+                                          alpha: 0.1,
+                                        )
                                             : Colors.white,
                                         borderColor: Colors.grey.shade200,
-                                        textEntry: 'Gallery',
+                                        textEntry: 'Galerie',
                                       ),
                                     ),
                                     const SizedBox(width: 12),
@@ -266,20 +265,20 @@ class _NewEntreeState extends State<NewEntree> {
                                           await prov
                                               .pickImageJustificatifFromCamera()
                                               .then((_) {
-                                                if (!context.mounted) return;
-                                                Navigator.of(context).pop();
-                                              });
+                                            if (!context.mounted) return;
+                                            Navigator.of(context).pop();
+                                          });
                                         },
                                         icon:
-                                            CupertinoIcons.camera_on_rectangle,
+                                        CupertinoIcons.camera_on_rectangle,
                                         iconColor: Colors.black,
                                         textColor: Colors.black,
                                         containerBg:
-                                            Theme.of(context).brightness ==
-                                                Brightness.dark
+                                        Theme.of(context).brightness ==
+                                            Brightness.dark
                                             ? Colors.white.withValues(
-                                                alpha: 0.1,
-                                              )
+                                          alpha: 0.1,
+                                        )
                                             : Colors.white,
                                         borderColor: Colors.grey.shade200,
                                         textEntry: 'Caméra',
@@ -323,25 +322,22 @@ class _NewEntreeState extends State<NewEntree> {
                   ],
                 ),
                 const SizedBox(height: 24),
-                // Bouton
+
+                /// Add entree Bouton
                 MaterialButton(
                   onPressed: () async {
                     if (prov.isLoading) return;
                     //
                     if (prov.selectedIndex == -1) {
                       if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            "⚠️️ • Veuillez sélectionner une catégorie",
-                            style: Theme.of(context).textTheme.bodyMedium!
-                                .copyWith(color: Colors.white),
-                          ),
-                          backgroundColor: Colors.red,
-                          behavior: SnackBarBehavior.floating,
-                          shape: const StadiumBorder(),
-                        ),
-                      );
+                      _snackBar("⚠️️ • Veuillez sélectionner une catégorie");
+                      return;
+                    }
+                    final amountEntree = double.parse(
+                      prov.montanEntreeController.text.trim(),
+                    );
+                    if (amountEntree.toString().isEmpty) {
+                      _snackBar("⚠️️ • Veuillez entrer un montant");
                       return;
                     }
                     //
@@ -351,31 +347,31 @@ class _NewEntreeState extends State<NewEntree> {
                         prov.selectedIndex,
                       ),
                       montant: double.parse(
-                        prov.montanEntreetController.text.trim(),
+                        prov.montanEntreeController.text.trim(),
                       ),
                       description: prov.descriptionEntreeController.text.trim(),
                       missionId: widget.mission.id ?? '',
                     );
                     if (widget.entreeToEdit != null) {
                       await prov.updateEntreeOnPb(
-                        missionId: widget.mission.id!,
+                        mission: widget.mission,
                         entreeId: widget.entreeToEdit!.id!,
                         data: newEntree.toMap(),
                       );
-                    } else {
-                      //
-                      if (widget.mission.id == null) return;
-                      prov.addEntreeToPb(
+                    } else if (widget.mission.id != null) {
+                      await prov.addEntreeToPb(
                         entree: newEntree,
-                        missionId: widget.mission.id!,
+                        mission: widget.mission,
                       );
                     }
                     //
-                    prov.clearControllers();
-                    //
                     if (!context.mounted) return;
+                    prov.clearControllers();
                     Navigator.of(context).pop();
                     //
+                    prov.fetchTrx(missionId: widget.mission.id!, queryString: '');
+                    //
+                    if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
@@ -384,10 +380,10 @@ class _NewEntreeState extends State<NewEntree> {
                               : "🎉✅🎊 • Entrée ajouté avec succès",
                           style: Theme.of(context).textTheme.bodyMedium!
                               .copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSecondary,
-                              ),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSecondary,
+                          ),
                         ),
                         backgroundColor: Theme.of(
                           context,
@@ -409,20 +405,36 @@ class _NewEntreeState extends State<NewEntree> {
                   ),
                   child: prov.isLoading
                       ? const CircularProgressIndicator.adaptive(
-                          backgroundColor: Colors.white,
-                        )
+                    backgroundColor: Colors.white,
+                  )
                       : Text(
-                          widget.entreeToEdit != null
-                              ? "Modifier l'entrée"
-                              : "Ajouter l'entrée",
-                          style: Theme.of(context).textTheme.titleMedium!
-                              .copyWith(fontSize: 17, color: Colors.white),
-                        ),
+                    widget.entreeToEdit != null
+                        ? "Modifier l'entrée"
+                        : "Ajouter l'entrée",
+                    style: Theme.of(context).textTheme.titleMedium!
+                        .copyWith(fontSize: 17, color: Colors.white),
+                  ),
                 ),
               ],
             ),
           );
         },
+      ),
+    );
+  }
+
+  void _snackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium!.copyWith(color: Colors.white),
+        ),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: const StadiumBorder(),
       ),
     );
   }

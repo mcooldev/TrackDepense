@@ -61,7 +61,7 @@ class _TextFormFieldWidgetState extends State<TextFormFieldWidget> {
       //
       keyboardType: widget.keyboardType,
       //
-      textCapitalization: TextCapitalization.sentences,
+      // textCapitalization: TextCapitalization.sentences,
       //
       autocorrect: false,
       //

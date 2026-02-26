@@ -37,6 +37,7 @@ final Map<MissionType, String> missionTypeName = {
 class Mission {
   Mission({
     this.id,
+    this.pbRecord,
     required this.nom,
     required this.user,
     required this.capitaleInitial,
@@ -50,6 +51,8 @@ class Mission {
     this.isAmountGoal = false,
     this.amountGoal,
   });
+
+  RecordModel? pbRecord;
 
   String? id;
   String nom, user;
@@ -67,14 +70,21 @@ class Mission {
   /// Mission fromRecord
   factory Mission.fromRecord(RecordModel record) {
     //
-    final entreesData = record.getListValue<RecordModel>("expand.entrees(missionId)", []);
-    final depensesData = record.getListValue<RecordModel>("expand.depenses(missionId)", []);
+    final entreesData = record.getListValue<RecordModel>(
+      "expand.entrees(missionId)",
+      [],
+    );
+    final depensesData = record.getListValue<RecordModel>(
+      "expand.depenses(missionId)",
+      [],
+    );
 
     final entreeList = entreesData.map((r) => Entree.fromRecord(r)).toList();
     final depenseList = depensesData.map((r) => Depense.fromRecord(r)).toList();
     //
     return Mission(
       id: record.id,
+      pbRecord: record,
       user: record.getStringValue("user"),
       nom: record.getStringValue("nom"),
       capitaleInitial: record.getDoubleValue("capitaleInitial"),
@@ -102,11 +112,46 @@ class Mission {
     "isAmountGoal": isAmountGoal,
     "amountGoal": amountGoal,
   };
+
+  Mission copyWith({
+    String? id,
+    String? nom,
+    String? user,
+    double? capitaleInitial,
+    double? capitale,
+    List<Entree>? entrees,
+    List<Depense>? depenses,
+    DateTime? dateDebut,
+    DateTime? dateFin,
+    bool? isClosed,
+    bool? isAmountGoal,
+    double? amountGoal,
+    DateTime? createdAt,
+  }) {
+    return Mission(
+      id: id ?? this.id,
+      amountGoal: amountGoal ?? this.amountGoal,
+      nom: nom ?? this.nom,
+      user: user ?? this.user,
+      capitaleInitial: capitaleInitial ?? this.capitaleInitial,
+      capitale: capitale ?? this.capitale,
+      entrees: entrees ?? this.entrees,
+      depenses: depenses ?? this.depenses,
+      dateDebut: dateDebut ?? this.dateDebut,
+      dateFin: dateFin ?? this.dateFin,
+      isClosed: isClosed ?? this.isClosed,
+      isAmountGoal: isAmountGoal ?? this.isAmountGoal,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
 }
 
 /// Entree model
 class Entree {
+  final RecordModel? record;
+
   Entree({
+    this.record,
     this.id,
     required this.montant,
     required this.description,
@@ -133,6 +178,7 @@ class Entree {
 
   /// Entree fromRecord
   factory Entree.fromRecord(RecordModel record) => Entree(
+    record: record,
     id: record.id,
     categorie: record.getStringValue("categorie"),
     montant: record.getDoubleValue("montant"),
@@ -145,7 +191,10 @@ class Entree {
 
 /// Depense model
 class Depense {
+  final RecordModel? record;
+
   Depense({
+    this.record,
     required this.montant,
     required this.categorie,
     required this.description,
@@ -173,6 +222,7 @@ class Depense {
 
   /// Depense fromMap
   factory Depense.fromRecord(RecordModel record) => Depense(
+    record: record,
     id: record.id,
     montant: record.getDoubleValue("montant"),
     categorie: record.getStringValue("categorie"),

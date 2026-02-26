@@ -42,7 +42,7 @@ class _LoginSignupState extends State<LoginSignup> {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  "Un moyen simple de gérer votre budget",
+                  "Un moyen simple\nde gérer votre budget",
                   style: Theme.of(
                     context,
                   ).textTheme.headlineLarge!.copyWith(fontSize: 28),
@@ -56,22 +56,20 @@ class _LoginSignupState extends State<LoginSignup> {
                   ).textTheme.bodyLarge!.copyWith(fontSize: 18),
                   textAlign: TextAlign.center,
                 ),
-                const Spacer(),
+                const SizedBox(height: 32),
 
-                /// Sings options
+                /// Sign up && Login buttons
                 Column(
                   children: [
-                    /// Google Sign in
+                    // Signup Button
                     MaterialButton(
                       onPressed: () async {
-                        await pb.signWithGoogle(context);
+                        await obProv.setFirstTimeComplete();
+                        if (!context.mounted) return;
+                        Navigator.pushNamed(context, "/signup");
                       },
-                      splashColor: Theme.of(
-                        context,
-                      ).colorScheme.primary.withValues(alpha: 0.15),
-                      color: Theme.of(context).colorScheme.surface,
+                      color: Theme.of(context).colorScheme.onPrimary,
                       elevation: 0,
-                      height: 50,
                       minWidth: double.infinity,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(90),
@@ -82,122 +80,41 @@ class _LoginSignupState extends State<LoginSignup> {
                           ).colorScheme.onSurface.withValues(alpha: 0.3),
                         ),
                       ),
-                      child: prov.isLoading
-                          ? CircularProgressIndicator.adaptive(
-                              backgroundColor: Theme.of(
-                                context,
-                              ).colorScheme.onSurface,
-                            )
-                          : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Image.asset(
-                                  "assets/google_logo.png",
-                                  height: 24,
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  "Continuer avec Google",
-                                  style: Theme.of(context).textTheme.bodyLarge,
-                                ),
-                              ],
-                            ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
+                      child: Text(
+                        "Créer un compte",
+                        softWrap: false,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: 24),
-
-                    // Or
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Expanded(
-                          child: Divider(
-                            thickness: 0.5,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.3),
-                          ),
+                    const SizedBox(height: 12),
+                    MaterialButton(
+                      onPressed: () async {
+                        await obProv.setFirstTimeComplete();
+                        if (!context.mounted) return;
+                        Navigator.pushNamed(context, "/login");
+                      },
+                      color: Theme.of(context).colorScheme.primary,
+                      elevation: 0,
+                      minWidth: double.infinity,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(90),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
+                      child: Text(
+                        "Se connecter",
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onPrimary,
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          "Ou continuer par",
-                          style: Theme.of(context).textTheme.bodyLarge,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Divider(
-                            thickness: 0.5,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.3),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-
-                    /// Sign up && Login buttons
-                    Row(
-                      mainAxisSize: MainAxisSize.max,
-                      children: [
-                        // Signup Button
-                        Expanded(
-                          child: MaterialButton(
-                            onPressed: () async {
-                              await obProv.setFirstTimeComplete();
-                              if (!context.mounted) return;
-                              Navigator.pushNamed(context, "/signup");
-                            },
-                            color: Theme.of(context).colorScheme.onPrimary,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(90),
-                              side: BorderSide(
-                                width: 0.5,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withValues(alpha: 0.3),
-                              ),
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 16,
-                            ),
-                            child: Text(
-                              "Créer un compte",
-                              softWrap: false,
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        // Login Button
-                        Expanded(
-                          child: MaterialButton(
-                            onPressed: () async {
-                              await obProv.setFirstTimeComplete();
-                              if (!context.mounted) return;
-                              Navigator.pushNamed(context, "/login");
-                            },
-                            color: Theme.of(context).colorScheme.primary,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(90),
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 16,
-                            ),
-                            child: Text(
-                              "Se connecter",
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.onPrimary,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ],
                 ),

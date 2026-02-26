@@ -1,9 +1,7 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/reset_pwd_provider.dart';
-import '../../widgets/text_form_field_widget.dart';
 
 class ResetPassword extends StatefulWidget {
   const ResetPassword({super.key});
@@ -36,104 +34,41 @@ class _ResetPasswordState extends State<ResetPassword> {
           ),
 
           ///
-          body: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Mot de passe oublié ?",
-                  softWrap: true,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.headlineLarge!.copyWith(fontSize: 28),
-                ),
-                const SizedBox(height: 12),
-
-                //
-                Text(
-                  "Entrer votre nouveau mot de passe et confirmer.",
-                  softWrap: true,
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-                const SizedBox(height: 32),
-
-                /// Nouveau mot de passe
-                Text(
-                  "Nouveau mot de passe",
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                TextFormFieldWidget(
-                  controller: prov.newPwdController,
-                  hintText: "••••••••",
-                  iconData: CupertinoIcons.lock,
-                  isPassword: true,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return "Veuillez entrer un mot de passe";
-                    }
-                    if (value.length < 8) {
-                      return "Veuillez entrer minimum 8 caractères";
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                /// Confirmer nouveau mot de passe
-                Text(
-                  "Confirmer nouveau mot de passe",
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                TextFormFieldWidget(
-                  controller: prov.confirmNewPwdController,
-                  hintText: "••••••••",
-                  iconData: CupertinoIcons.lock,
-                  isPassword: true,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return "Veuillez confirmer le mot de passe";
-                    }
-                    if (value != prov.newPwdController.text) {
-                      return "Les mots de passe ne correspondent pas";
-                    }
-                    if (value.length < 8) {
-                      return "Veuillez entrer minimum 8 caractères";
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 32),
-
-                /// Reset password button
-                MaterialButton(
-                  onPressed: () async {
-                    if (prov.isLoading) return;
-                    await prov.resetPassword(context);
-                  },
-                  splashColor: Theme.of(
-                    context,
-                  ).colorScheme.primary.withValues(alpha: 0.15),
-                  color: Theme.of(context).colorScheme.primary,
-                  elevation: 0,
-                  height: 50,
-                  minWidth: double.infinity,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(90),
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 150,
+                    child: Image.asset(
+                      'assets/email-image.png',
+                      fit: BoxFit.cover,
+                    ),
                   ),
-                  child: prov.isLoading
-                      ? const CircularProgressIndicator.adaptive(
-                          backgroundColor: Colors.white,
-                        )
-                      : Text(
-                          "Confirmer le changement",
-                          style: Theme.of(context).textTheme.titleMedium!
-                              .copyWith(fontSize: 17, color: Colors.white),
-                        ),
-                ),
-              ],
+                  Text(
+                    "Réinitialisation du mot de passe envoyée ?",
+                    softWrap: true,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.headlineLarge!.copyWith(fontSize: 28),
+                  ),
+                  const SizedBox(height: 12),
+
+                  //
+                  Text(
+                    "Vérifier votre email sous peu. Un lien de réinitialisation de mot de passe vous a été envoyé.",
+                    softWrap: true,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                  const SizedBox(height: 150),
+                ],
+              ),
             ),
           ),
         );

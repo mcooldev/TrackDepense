@@ -1,10 +1,12 @@
 import 'dart:async';
-import 'dart:developer';
 import 'dart:io';
+import 'dart:math';
+import 'dart:developer' as dev;
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
+import 'package:track_depenses/providers/user_provider.dart';
 
 import '../helpers/pocketBaseHelper/pocketbase_db.dart';
 import '../helpers/pocketBaseHelper/trx_db.dart';
@@ -16,12 +18,97 @@ class TransactionProvider with ChangeNotifier {
 
   List<Mission> get missions => [..._missions];
 
+  //
+  final List<dynamic> _allTrx = [];
+
+  List<dynamic> get allTrx => [..._allTrx];
+
   /// Trx to pocketbase database
 
   bool _isLoading = false;
 
   bool get isLoading => _isLoading;
   final pb = PocketBaseDb.instance.pb;
+
+  /// Fetch missions
+  Future<List<Mission>> fetchMissions({
+    required bool isClosed,
+    required String searchQuery,
+  }) async {
+    if (isLoading) return [];
+    if (pb.authStore.record == null) return [];
+    //
+    _isLoading = true;
+    notifyListeners();
+    try {
+      //
+      final expand = "depenses_via_missionId,entrees_via_missionId";
+      String filter =
+          "user = '${pb.authStore.record?.id}' && isClosed = $isClosed";
+      if (searchQuery.isNotEmpty) {
+        filter += " && nom ~ '$searchQuery'";
+      }
+      //
+      final records = await pb
+          .collection("missions")
+          .getFullList(filter: filter, sort: '-created', expand: expand);
+      //
+      return _missions
+        ..clear()
+        ..addAll(records.map(Mission.fromRecord));
+      //
+    } catch (e) {
+      dev.log("Error while fetching missions: $e");
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<List<dynamic>> fetchTrx({
+    required String missionId,
+    required String queryString,
+  }) async {
+    if (isLoading) return [];
+    if (pb.authStore.record == null) return [];
+    if (missionId.isEmpty) return [];
+    //
+    _isLoading = true;
+    notifyListeners();
+    try {
+      //
+      String filter = "missionId = '$missionId'";
+      if (queryString.isNotEmpty) {
+        filter += " && (description ~ '$queryString')";
+      }
+      //
+      final lists = await Future.wait([
+        pb.collection("entrees").getFullList(sort: "-created", filter: filter),
+        pb.collection("depenses").getFullList(sort: "-created", filter: filter),
+      ]);
+      final entreeList = lists[0];
+      //
+      final depenseList = lists[1];
+      //
+
+      final fetchedTrx = [
+        ...entreeList.map((e) => Entree.fromRecord(e)),
+        ...depenseList.map((d) => Depense.fromRecord(d)),
+      ];
+      return _allTrx
+        ..clear()
+        ..addAll(fetchedTrx)
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      //
+    } catch (e) {
+      dev.log("Error while fetching transactions: $e");
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 
   // Add mission to pocketbase
   Future<void> addMissionToPb(Mission mission) async {
@@ -33,7 +120,9 @@ class TransactionProvider with ChangeNotifier {
     try {
       final record = await pb
           .collection("missions")
-          .create(body: mission.toMap());
+          .create(
+            body: mission.toMap(),
+          );
       //
       await pb
           .collection('entrees')
@@ -46,9 +135,9 @@ class TransactionProvider with ChangeNotifier {
             },
           );
       //
-      log("✅ Mission ajoutée avec succès");
+      dev.log("✅ Mission ajoutée avec succès");
     } catch (e) {
-      log("Erreur lors de l'ajout de la mission : $e");
+      dev.log("Erreur lors de l'ajout de la mission : $e");
       rethrow;
     } finally {
       _isLoading = false;
@@ -59,18 +148,20 @@ class TransactionProvider with ChangeNotifier {
   // Add entree to pocketbase
   Future<void> addEntreeToPb({
     required Entree entree,
-    required String missionId,
+    required Mission mission,
   }) async {
     _isLoading = true;
     notifyListeners();
+    //
+    final File? image = _imageJustificatif;
     //
     try {
       await pb
           .collection("entrees")
           .create(
             body: entree.toMap(),
-            expand: 'missionId',
-            files: _imageJustificatif == null
+            expand: "missionId",
+            files: image == null
                 ? []
                 : [
                     await http.MultipartFile.fromPath(
@@ -80,10 +171,13 @@ class TransactionProvider with ChangeNotifier {
                   ],
           );
       //
-      await _updateMissionCapital(missionId);
+      updateTrxLocally(entree);
       //
+      await updateMissionCapital(mission);
+      //
+      _imageJustificatif = null;
     } catch (e) {
-      log("Error: $e");
+      dev.log("Error: $e");
       rethrow;
     } finally {
       _isLoading = false;
@@ -94,19 +188,21 @@ class TransactionProvider with ChangeNotifier {
   // Add depense to pocketbase
   Future<void> addDepenseToPb({
     required Depense depense,
-    required String missionId,
+    required Mission mission,
   }) async {
     _isLoading = true;
     notifyListeners();
+    //
+    final File? image = _imageJustificatif;
     //
     try {
       //
       await pb
           .collection("depenses")
           .create(
-            expand: 'missionId',
             body: depense.toMap(),
-            files: _imageJustificatif == null
+            expand: "missionId",
+            files: image == null
                 ? []
                 : [
                     await http.MultipartFile.fromPath(
@@ -116,10 +212,13 @@ class TransactionProvider with ChangeNotifier {
                   ],
           );
       //
-      await _updateMissionCapital(missionId);
+      updateTrxLocally(depense);
       //
+      await updateMissionCapital(mission);
+      //
+      _imageJustificatif = null;
     } catch (e) {
-      log("Error: $e");
+      dev.log("Error: $e");
       rethrow;
     } finally {
       _isLoading = false;
@@ -127,17 +226,17 @@ class TransactionProvider with ChangeNotifier {
     }
   }
 
-  Future<void> updateMissionToPb({
+  Future<Mission?> updateMissionToPb({
     required Mission mission,
     Map<String, dynamic>? data,
   }) async {
-    if (isLoading) return;
+    if (isLoading) return null;
     //
     _isLoading = true;
     notifyListeners();
     //
     try {
-      await pb
+      final updatedRecord = await pb
           .collection('missions')
           .update(mission.id!, body: data ?? mission.toMap());
       //
@@ -150,13 +249,15 @@ class TransactionProvider with ChangeNotifier {
           .collection('entrees')
           .update(recordEntree.id, body: {'montant': mission.capitaleInitial});
       //
-      await _updateMissionCapital(mission.id!);
+      final updatedMission = Mission.fromRecord(updatedRecord);
       //
-      notifyListeners();
+      await updateMissionCapital(updatedMission);
       //
-      log("✅ Mission mise à jour avec succès");
+      dev.log("✅ Mission mise à jour avec succès");
+      //
+      return updatedMission;
     } catch (e) {
-      log("Erreur lors de la mise à jour de la mission : $e");
+      dev.log("Erreur lors de la mise à jour de la mission : $e");
       rethrow;
     } finally {
       _isLoading = false;
@@ -165,16 +266,27 @@ class TransactionProvider with ChangeNotifier {
   }
 
   //
-  Future<void> _updateMissionCapital(String missionId) async {
+  void updateTrxLocally(dynamic trxUpdated) {
+    final index = _allTrx.indexWhere((trx) => trx.id == trxUpdated.id);
+    if (index != -1) {
+      _allTrx[index] = trxUpdated;
+    } else {
+      _allTrx.add(trxUpdated);
+    }
+    notifyListeners();
+  }
+
+  //
+  Future<void> updateMissionCapital(Mission mission) async {
     try {
       //
       final results = await Future.wait([
         pb
             .collection('entrees')
-            .getFullList(filter: 'missionId = "$missionId"'),
+            .getFullList(filter: 'missionId = "${mission.id}"'),
         pb
             .collection('depenses')
-            .getFullList(filter: 'missionId = "$missionId"'),
+            .getFullList(filter: 'missionId = "${mission.id}"'),
       ]);
       //
       final entreeList = results[0];
@@ -189,22 +301,31 @@ class TransactionProvider with ChangeNotifier {
         (pre, current) => pre + current.getDoubleValue("montant"),
       );
       //
-      final newCapital = totalEntrees - totalDepenses;
+      final newCapital = max(0, totalEntrees - totalDepenses);
       //
-      await pb
+      final updatedRecord = await pb
           .collection('missions')
-          .update(missionId, body: {'capitale': newCapital});
+          .update(mission.id!, body: {'capitale': newCapital});
       //
-      log("✅ Capital recalculé: $newCapital");
+      final updatedMission = Mission.fromRecord(updatedRecord);
+      final index = _missions.indexWhere(
+        (mission) => mission.id == updatedMission.id,
+      );
+      if (index != -1) {
+        _missions[index] = updatedMission;
+        notifyListeners();
+      }
+      //
+      dev.log("✅ Capital recalculé: $newCapital");
       //
     } catch (e) {
-      log("❌ Erreur de recalcul: $e");
+      dev.log("❌ Erreur de recalcul: $e");
     }
   }
 
   //
   Future<void> updateEntreeOnPb({
-    required String missionId,
+    required Mission mission,
     required String entreeId,
     required Map<String, dynamic> data,
   }) async {
@@ -213,14 +334,17 @@ class TransactionProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     //
+    final File? image = _imageJustificatif;
+    //
     try {
       //
-      await pb
+      final trxUpdated = await pb
           .collection("entrees")
           .update(
             entreeId,
+            expand: "missionId",
             body: data,
-            files: _imageJustificatif == null
+            files: image == null
                 ? []
                 : [
                     await http.MultipartFile.fromPath(
@@ -230,10 +354,13 @@ class TransactionProvider with ChangeNotifier {
                   ],
           );
       //
-      await _updateMissionCapital(missionId);
+      updateTrxLocally(trxUpdated);
       //
+      await updateMissionCapital(mission);
+      //
+      _imageJustificatif = null;
     } catch (e) {
-      log("Erreur lors de la mise à jour de l'entrée : $e");
+      dev.log("Erreur lors de la mise à jour de l'entrée : $e");
       rethrow;
     } finally {
       _isLoading = false;
@@ -243,7 +370,7 @@ class TransactionProvider with ChangeNotifier {
 
   //
   Future<void> updateDepenseOnPb({
-    required String missionId,
+    required Mission mission,
     required String depenseId,
     required Map<String, dynamic> data,
   }) async {
@@ -252,14 +379,17 @@ class TransactionProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     //
+    final File? image = _imageJustificatif;
+    //
     try {
       //
-      await pb
+      final trxUpdated = await pb
           .collection("depenses")
           .update(
             depenseId,
             body: data,
-            files: _imageJustificatif == null
+            expand: "missionId",
+            files: image == null
                 ? []
                 : [
                     await http.MultipartFile.fromPath(
@@ -269,10 +399,13 @@ class TransactionProvider with ChangeNotifier {
                   ],
           );
       //
-      await _updateMissionCapital(missionId);
+      updateTrxLocally(trxUpdated);
       //
+      await updateMissionCapital(mission);
+      //
+      _imageJustificatif = null;
     } catch (e) {
-      log("Erreur lors de la mise à jour de la dépense : $e");
+      dev.log("Erreur lors de la mise à jour de la dépense : $e");
       rethrow;
     } finally {
       _isLoading = false;
@@ -280,7 +413,12 @@ class TransactionProvider with ChangeNotifier {
     }
   }
 
-  /// Dialogs
+  /// Diadev.logs
+
+  void deleteMissionLocally(String missionId) {
+    _missions.removeWhere((mission) => mission.id == missionId);
+    notifyListeners();
+  }
 
   Future<void> deleteMissionDialog(
     BuildContext context,
@@ -324,10 +462,7 @@ class TransactionProvider with ChangeNotifier {
             ),
             elevation: 0,
             color: Theme.of(context).colorScheme.surface,
-            child: Text(
-              "Annuler",
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
+            child: const Text("Annuler", style: TextStyle(color: Colors.red)),
           ),
           MaterialButton(
             onPressed: () => Navigator.pop(context, true),
@@ -350,7 +485,8 @@ class TransactionProvider with ChangeNotifier {
       if (!context.mounted) return;
       //
       if (mission.id == null) return;
-      TrxDb.instance.deleteMissionOnPb(mission.id!);
+      await TrxDb.instance.deleteMissionOnPb(mission.id!);
+      deleteMissionLocally(mission.id!);
       clearControllers();
       //
       if (!context.mounted) return;
@@ -370,6 +506,7 @@ class TransactionProvider with ChangeNotifier {
   Future<void> closeMissionDialog({
     required BuildContext context,
     required Mission mission,
+    required UserProvider prov,
   }) async {
     //
     final confirm = await showDialog<bool>(
@@ -409,10 +546,7 @@ class TransactionProvider with ChangeNotifier {
             ),
             elevation: 0,
             color: Theme.of(context).colorScheme.surface,
-            child: Text(
-              "Annuler",
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
+            child: const Text("Annuler", style: TextStyle(color: Colors.red)),
           ),
           MaterialButton(
             onPressed: () => Navigator.pop(context, true),
@@ -433,13 +567,11 @@ class TransactionProvider with ChangeNotifier {
     //
     if (confirm == true) {
       if (!context.mounted) return;
-      // todo: close mission method from pocketbase
       await updateMissionToPb(mission: mission, data: {'isClosed': true});
+      //
       clearControllers();
       //
       if (!context.mounted) return;
-      Navigator.of(context).pushReplacementNamed('/closedMissions');
-      //
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text("🗃️ • Mission clôturée avec succès"),
@@ -451,7 +583,13 @@ class TransactionProvider with ChangeNotifier {
     }
   }
 
-  // Delete depense dialog
+  /// Delete depense diadev.log
+
+  void deleteTrxLocally(String trxId) {
+    _allTrx.removeWhere((t) => t.id == trxId);
+    notifyListeners();
+  }
+
   Future<void> deleteTrxDialog(
     BuildContext context,
     dynamic trx,
@@ -497,10 +635,7 @@ class TransactionProvider with ChangeNotifier {
             ),
             elevation: 0,
             color: Theme.of(context).colorScheme.surface,
-            child: Text(
-              "Annuler",
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
+            child: const Text("Annuler", style: TextStyle(color: Colors.red)),
           ),
           MaterialButton(
             onPressed: () => Navigator.pop(context, true),
@@ -522,12 +657,9 @@ class TransactionProvider with ChangeNotifier {
     if (confirm == true) {
       //
       await TrxDb.instance.deleteTrxOnPb(trx.id, isEntree);
+      deleteTrxLocally(trx.id);
       //
-      clearControllers();
-      await Future.wait([
-        _updateMissionCapital(trx.missionId),
-        Future.delayed(const Duration(milliseconds: 500)),
-      ]);
+      await updateMissionCapital(trx.missionId);
       //
       if (!context.mounted) return;
       Navigator.of(context).pop();
@@ -549,7 +681,7 @@ class TransactionProvider with ChangeNotifier {
   }
 
   /// Controllers for entree
-  final montanEntreetController = TextEditingController();
+  final montanEntreeController = TextEditingController();
   final descriptionEntreeController = TextEditingController();
 
   /// Controllers for depense
@@ -561,8 +693,8 @@ class TransactionProvider with ChangeNotifier {
   final capitaleController = TextEditingController();
   final dateDebutController = TextEditingController();
   final dateFinController = TextEditingController();
-  DateTime? dateDebut = DateTime.now();
-  DateTime? dateFin = DateTime.now();
+  DateTime? dateDebut;
+  DateTime? dateFin;
 
   String _hintValueDebut = "";
   String _hintValueFin = "";
@@ -588,14 +720,12 @@ class TransactionProvider with ChangeNotifier {
     capitaleController.clear();
     dateDebutController.clear();
     dateFinController.clear();
-    montanEntreetController.clear();
+    montanEntreeController.clear();
     descriptionEntreeController.clear();
     montantDepenseController.clear();
     amountGoalController.clear();
     _isAmountGoalSet = false;
     descriptionDepenseController.clear();
-    dateDebut = DateTime.now();
-    dateFin = DateTime.now();
     _hintValueDebut = "";
     _hintValueFin = "";
     _selectedIndex = -1;
@@ -699,7 +829,7 @@ class TransactionProvider with ChangeNotifier {
     capitaleController.dispose();
     dateDebutController.dispose();
     dateFinController.dispose();
-    montanEntreetController.dispose();
+    montanEntreeController.dispose();
     descriptionEntreeController.dispose();
     _imageJustificatif = null;
     _selectedIndex = -1;
