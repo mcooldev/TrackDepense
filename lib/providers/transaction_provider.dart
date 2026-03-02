@@ -120,9 +120,7 @@ class TransactionProvider with ChangeNotifier {
     try {
       final record = await pb
           .collection("missions")
-          .create(
-            body: mission.toMap(),
-          );
+          .create(body: mission.toMap());
       //
       await pb
           .collection('entrees')
@@ -503,7 +501,7 @@ class TransactionProvider with ChangeNotifier {
     }
   }
 
-  Future<void> closeMissionDialog({
+  Future<bool> closeMissionDialog({
     required BuildContext context,
     required Mission mission,
     required UserProvider prov,
@@ -566,12 +564,12 @@ class TransactionProvider with ChangeNotifier {
     );
     //
     if (confirm == true) {
-      if (!context.mounted) return;
+      if (!context.mounted) return false;
       await updateMissionToPb(mission: mission, data: {'isClosed': true});
       //
-      clearControllers();
+      notifyListeners();
       //
-      if (!context.mounted) return;
+      if (!context.mounted) return true;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text("🗃️ • Mission clôturée avec succès"),
@@ -581,6 +579,7 @@ class TransactionProvider with ChangeNotifier {
         ),
       );
     }
+    return false;
   }
 
   /// Delete depense diadev.log

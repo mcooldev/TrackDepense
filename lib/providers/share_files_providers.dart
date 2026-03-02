@@ -470,8 +470,17 @@ class ShareFilesProvider with ChangeNotifier {
       final pdfBytes = await getCachedPdf(context, mission, transactions);
       //
       final directory = await getTemporaryDirectory();
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final path = "${directory.path}/pdf_$timestamp.pdf";
+      final formattedNow = DateFormat(
+        "dd_MM_yyyy_HH_mm",
+      ).format(DateTime.now());
+      final sanitizedMissionName = mission.nom
+          .trim()
+          .toLowerCase()
+          .replaceAll(RegExp(r'[^\w\s-]'), '')
+          .replaceAll(RegExp(r'[^\s+]'), '_')
+          .replaceAll(RegExp(r'[^_+]'), '_');
+      final path =
+          "${directory.path}/Rapport_${sanitizedMissionName}_$formattedNow.pdf";
       //
       await File(path).writeAsBytes(pdfBytes);
       //
@@ -492,82 +501,98 @@ class ShareFilesProvider with ChangeNotifier {
 
   /// Preview pdf file
 
+  bool _isLoadingPreview = false;
+
+  bool get isLoadingPreview => _isLoadingPreview;
+
   Future<void> previewPdf(
     BuildContext context,
     Mission mission,
     List<dynamic> transactions,
   ) async {
-    final pdfBytes = await getCachedPdf(context, mission, transactions);
-    //
-    final pdfPinchController = px.PdfControllerPinch(
-      document: px.PdfDocument.openData(pdfBytes),
-    );
-    //
-    if (!context.mounted) return;
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      enableDrag: false,
-      useSafeArea: true,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height,
-        decoration: ShapeDecoration(
-          color: Theme.of(context).brightness == Brightness.dark
-              ? const Color(0xff11181C)
-              : Colors.white,
-          shape: const ContinuousRectangleBorder(
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(40),
-              topRight: Radius.circular(40),
+    _isLoadingPreview = true;
+    notifyListeners();
+    try {
+      final pdfBytes = await getCachedPdf(context, mission, transactions);
+      final pdfPinchController = px.PdfControllerPinch(
+        document: px.PdfDocument.openData(pdfBytes),
+      );
+
+      if (!context.mounted) return;
+
+      await showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        enableDrag: false,
+        useSafeArea: true,
+        builder: (context) => Container(
+          height: MediaQuery.of(context).size.height,
+          decoration: ShapeDecoration(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xff11181C)
+                : Colors.white,
+            shape: const ContinuousRectangleBorder(
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(40),
+                topRight: Radius.circular(40),
+              ),
             ),
           ),
-        ),
-        child: Column(
-          children: [
-            // Pdf header
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-              decoration: ShapeDecoration(
-                color: Colors.red.shade700,
-                shape: const ContinuousRectangleBorder(
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(40),
-                    topRight: Radius.circular(40),
+          child: Column(
+            children: [
+              // Pdf header
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 16,
+                  horizontal: 24,
+                ),
+                decoration: ShapeDecoration(
+                  color: Colors.red.shade700,
+                  shape: const ContinuousRectangleBorder(
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(40),
+                      topRight: Radius.circular(40),
+                    ),
                   ),
                 ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Prévisualisation PDF',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Prévisualisation PDF',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
-                  ),
-                  IconButton(
-                    icon: const Icon(
-                      CupertinoIcons.multiply,
-                      color: Colors.white,
+                    IconButton(
+                      icon: const Icon(
+                        CupertinoIcons.multiply,
+                        color: Colors.white,
+                      ),
+                      onPressed: () => Navigator.of(context).pop(),
                     ),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            // Pdf viewer
-            Expanded(
-              child: px.PdfViewPinch(
-                controller: pdfPinchController,
-                scrollDirection: Axis.vertical,
+              // Pdf viewer
+              Expanded(
+                child: px.PdfViewPinch(
+                  controller: pdfPinchController,
+                  scrollDirection: Axis.vertical,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      log("Error while previewing pdf: $e");
+    } finally {
+      _isLoadingPreview = false;
+      notifyListeners();
+    }
   }
 
   /// Disposer

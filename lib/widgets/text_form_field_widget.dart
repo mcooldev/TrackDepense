@@ -35,7 +35,6 @@ class _TextFormFieldWidgetState extends State<TextFormFieldWidget> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     obscure = widget.isPassword;
   }
@@ -44,7 +43,6 @@ class _TextFormFieldWidgetState extends State<TextFormFieldWidget> {
   @override
   Widget build(BuildContext context) {
     return TextFormField(
-
       onTap: widget.onTap,
       //
       controller: widget.controller,
@@ -72,10 +70,7 @@ class _TextFormFieldWidgetState extends State<TextFormFieldWidget> {
         //
         contentPadding: const EdgeInsets.symmetric(horizontal: 16),
         //
-        prefixIcon: Icon(
-          widget.iconData,
-          color: Colors.grey,
-        ),
+        prefixIcon: Icon(widget.iconData, color: Colors.grey),
         //
         suffixIcon: widget.isPassword
             ? IconButton(
@@ -97,8 +92,9 @@ class _TextFormFieldWidgetState extends State<TextFormFieldWidget> {
             : null,
         //
         hintText: widget.hintText,
-        hintStyle: Theme.of(context).textTheme.titleMedium!
-            .copyWith(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
+        hintStyle: Theme.of(context).textTheme.titleMedium!.copyWith(
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+        ),
         //
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(90),

@@ -150,40 +150,14 @@ class _HomeState extends State<Home> {
                 },
                 child: Container(
                   margin: const EdgeInsets.only(right: 16),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   height: 44,
+                  width: 44,
+                  alignment: Alignment.center,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(90),
-                    border: Border.all(
-                      width: 1,
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white.withValues(alpha: 0.2)
-                          : Colors.grey.shade200,
-                    ),
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white.withValues(alpha: 0.1)
-                        : Colors.white,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.add,
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white
-                            : Theme.of(context).colorScheme.primary,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        "Mission",
-                        style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white
-                              : Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                    ],
-                  ),
+                  child: const Icon(Icons.add, color: Colors.white),
                 ),
               ),
             ],
@@ -384,27 +358,26 @@ class _HomeState extends State<Home> {
               splashColor: Theme.of(
                 context,
               ).colorScheme.primary.withValues(alpha: 0.15),
-              color: Colors.transparent,
+              color: Theme.of(context).colorScheme.primary,
               elevation: 0,
               height: 50,
               padding: const EdgeInsets.symmetric(horizontal: 24),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(90),
-                side: BorderSide(
-                  width: 1,
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white.withValues(alpha: 0.2)
-                      : Colors.grey.shade300,
-                ),
               ),
-              child: Text(
-                "Ajouter une mission",
-                style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                  fontSize: 17,
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white
-                      : Theme.of(context).colorScheme.primary,
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(CupertinoIcons.add, color: Colors.white),
+                  const SizedBox(width: 8),
+                  Text(
+                    "Ajouter une mission",
+                    style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                      fontSize: 17,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

@@ -66,9 +66,7 @@ class _MissionsListViewState extends State<MissionsListView> {
 
             /// Mission container
             if (widget.missions.isEmpty)
-              SliverToBoxAdapter(
-                child: widget.emptyState,
-              )
+              SliverToBoxAdapter(child: widget.emptyState)
             else
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -82,12 +80,13 @@ class _MissionsListViewState extends State<MissionsListView> {
                       //
                       return MissionContainerWidget(
                         onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  MissionDetail(mission: mission),
-                            ),
-                          );
+                          Navigator.of(context)
+                              .push(
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      MissionDetail(mission: mission),
+                                ),
+                              );
                         },
                         missionIcon: mission.nom.substring(0, 1),
                         montantObjectif: mission.amountGoal,

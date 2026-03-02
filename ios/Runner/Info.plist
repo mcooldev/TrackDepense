@@ -36,6 +36,7 @@
 	<true/>
 	<key>NSBonjourServices</key>
 	<array>
+		<string>_dartVmService._tcp</string>
 		<string>_http._tcp</string>
 	</array>
 	<key>NSCameraUsageDescription</key>

@@ -69,16 +69,16 @@ class _NewEntreeState extends State<NewEntree> {
                   child: GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: 8,
+                    itemCount: missionTypeName.length,
                     gridDelegate:
-                    const SliverGridDelegateWithFixedCrossAxisCount(
+                        const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 4,
                       crossAxisSpacing: 8,
                       mainAxisSpacing: 12,
                       childAspectRatio: 1,
                     ),
                     itemBuilder: (ctx, index) {
-                      bool isSelected = index == prov.selectedIndex;
+                      final isSelected = index == prov.selectedIndex;
                       return MissionCategoryWidget(
                         missionTypeIcon: missionTypeIcon.values.elementAt(
                           index,

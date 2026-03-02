@@ -1,36 +1,36 @@
 import 'package:pocketbase/pocketbase.dart';
 
 enum MissionType {
-  transport,
-  prime,
-  urgence,
-  sante,
-  evenement,
   logement,
-  nouriture,
-  autre,
+  services,
+  transport,
+  alimentation,
+  fournitures,
+  sante,
+  salaires,
+  autres,
 }
 
 final Map<MissionType, String> missionTypeIcon = {
-  MissionType.transport: "🚌",
-  MissionType.prime: "💰",
-  MissionType.urgence: "⚠️",
-  MissionType.sante: "🤒",
-  MissionType.evenement: "🎉",
-  MissionType.logement: "🛌",
-  MissionType.nouriture: "🍔",
-  MissionType.autre: "🤑",
+  MissionType.logement: "🏠",
+  MissionType.services: "🔌",
+  MissionType.transport: "🚗",
+  MissionType.alimentation: "🍽️",
+  MissionType.fournitures: "📦",
+  MissionType.sante: "🏥",
+  MissionType.salaires: "💼",
+  MissionType.autres: "📌",
 };
 
 final Map<MissionType, String> missionTypeName = {
-  MissionType.transport: "Transport",
-  MissionType.prime: "Prime",
-  MissionType.urgence: "urgence",
-  MissionType.sante: "Santé",
-  MissionType.evenement: "Evènement",
   MissionType.logement: "Logement",
-  MissionType.nouriture: "Nouriture",
-  MissionType.autre: "Autre",
+  MissionType.services: "Services",
+  MissionType.transport: "Transport",
+  MissionType.alimentation: "Alimentation",
+  MissionType.fournitures: "Fournitures",
+  MissionType.sante: "Santé",
+  MissionType.salaires: "Salaires",
+  MissionType.autres: "Autres",
 };
 
 /// Mission model

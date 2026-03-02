@@ -68,7 +68,7 @@ class _NewExpenseState extends State<NewExpense> {
                   child: GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: 8,
+                    itemCount: missionTypeName.length,
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 4,
@@ -77,7 +77,7 @@ class _NewExpenseState extends State<NewExpense> {
                           childAspectRatio: 1,
                         ),
                     itemBuilder: (ctx, index) {
-                      bool isSelected = index == prov.selectedIndex;
+                      final isSelected = index == prov.selectedIndex;
                       return MissionCategoryWidget(
                         missionTypeIcon: missionTypeIcon.values.elementAt(
                           index,
@@ -384,7 +384,10 @@ class _NewExpenseState extends State<NewExpense> {
                     prov.clearControllers();
                     Navigator.of(context).pop();
                     //
-                    prov.fetchTrx(missionId: widget.mission.id!, queryString: '');
+                    prov.fetchTrx(
+                      missionId: widget.mission.id!,
+                      queryString: '',
+                    );
                     //
                     if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
