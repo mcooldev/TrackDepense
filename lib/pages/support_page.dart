@@ -125,71 +125,68 @@ class _SupportPageState extends State<SupportPage> {
                       const SizedBox(height: 12),
 
                       /// message content text field
-                      SizedBox(
-                        height: 200,
-                        child: TextFormField(
+                      TextFormField(
+                        //
+                        onTapOutside: (pointer) {
+                          FocusManager.instance.primaryFocus?.unfocus();
+                        },
+                        //
+                        controller: prov.messageController,
+                        //
+                        focusNode: FocusNode(),
+                        //
+                        keyboardType: TextInputType.multiline,
+                        //
+                        validator: (val) {
+                          if (val == null || val.isEmpty) {
+                            return "Veuillez décrire votre message";
+                          }
+                          return null;
+                        },
+                        //
+                        minLines: 5,
+                        maxLines: 8,
+                        textAlignVertical: TextAlignVertical.top,
+                        textAlign: TextAlign.start,
+                        textCapitalization: TextCapitalization.sentences,
+                        style: theme.textTheme.bodyMedium,
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(6),
+                          ),
                           //
-                          onTapOutside: (pointer) {
-                            FocusManager.instance.primaryFocus!.unfocus();
-                          },
-                          //
-                          controller: prov.messageController,
-                          //
-                          focusNode: FocusNode(),
-                          //
-                          keyboardType: TextInputType.multiline,
-                          //
-                          validator: (val) {
-                            if (val.toString().isEmpty) {
-                              return "Veuillez décrire votre message";
-                            }
-                            return null;
-                          },
-                          //
-                          expands: true,
-                          maxLines: null,
-                          textAlignVertical: TextAlignVertical.top,
-                          textAlign: TextAlign.start,
-                          textCapitalization: TextCapitalization.sentences,
-                          style: theme.textTheme.bodyMedium,
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(6),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(6),
+                            borderSide: BorderSide(
+                              width: 1,
+                              color: Colors.grey.shade200,
                             ),
-                            //
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(6),
-                              borderSide: BorderSide(
-                                width: 1,
-                                color: Colors.grey.shade200,
-                              ),
-                            ),
-                            //
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 16,
-                            ),
-                            //
-                            hintText: 'Décrivez votre demande ici ...',
-                            hintStyle: theme.textTheme.bodyMedium!.copyWith(
-                              color: Colors.grey.shade500,
-                            ),
-                            //
-                            alignLabelWithHint: true,
-                            prefixIcon: Column(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.max,
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 18),
-                                  child: Icon(
-                                    CupertinoIcons.doc_plaintext,
-                                    size: 22,
-                                    color: Colors.grey.shade500,
-                                  ),
+                          ),
+                          //
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
+                          ),
+                          //
+                          hintText: 'Décrivez votre demande ici ...',
+                          hintStyle: theme.textTheme.bodyMedium!.copyWith(
+                            color: Colors.grey.shade500,
+                          ),
+                          //
+                          alignLabelWithHint: true,
+                          prefixIcon: Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.max,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(top: 18),
+                                child: Icon(
+                                  CupertinoIcons.doc_plaintext,
+                                  size: 22,
+                                  color: Colors.grey.shade500,
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ),
                       ),

@@ -29,9 +29,11 @@ class _SignupState extends State<Signup> {
               CircleAvatar(
                 radius: 14,
                 backgroundColor: Theme.of(context).colorScheme.surface,
-                backgroundImage: const AssetImage("assets/td_launcher_icon.png"),
+                backgroundImage: const AssetImage(
+                  "assets/td_launcher_icon.png",
+                ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 6),
               Text(
                 "Track Dépenses",
                 style: Theme.of(context).textTheme.titleLarge,

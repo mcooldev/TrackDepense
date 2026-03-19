@@ -1,23 +1,36 @@
 {
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Flutter iOS",
-            "request": "launch",
-            "type": "dart",
-            "deviceId": "00008101-001934540C52001E",
-            "args": [
-                "--debug"
-            ]
-        },
-        {
-            "name": "Flutter Android",
-            "request": "launch",
-            "type": "dart",
-            "deviceId": "android",
-            "args": [
-                "--debug"
-            ]
-        },
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flutter: debug",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart",
+      "cwd": "${workspaceFolder}",
+      "flutterMode": "debug"
+    },
+    {
+      "name": "Flutter: profile",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart",
+      "cwd": "${workspaceFolder}",
+      "flutterMode": "profile"
+    },
+    {
+      "name": "Flutter: release",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart",
+      "cwd": "${workspaceFolder}",
+      "flutterMode": "release"
+    },
+    {
+      "name": "Dart: console (main.dart)",
+      "type": "dart",
+      "request": "launch",
+      "program": "bin/main.dart",
+      "cwd": "${workspaceFolder}"
+    }
+  ]
 }

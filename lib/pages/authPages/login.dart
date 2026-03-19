@@ -39,7 +39,7 @@ class _LoginState extends State<Login> {
                   "assets/td_launcher_icon.png",
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 6),
               Text(
                 "Track Dépenses",
                 style: Theme.of(context).textTheme.titleLarge,

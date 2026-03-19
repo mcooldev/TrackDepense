@@ -18,105 +18,129 @@ class _LoginSignupState extends State<LoginSignup> {
   ///
   @override
   Widget build(BuildContext context) {
+    //
+    final size = MediaQuery.sizeOf(context);
+    final theme = Theme.of(context);
+    //
     return Consumer2<OnBoardingProvider, LoginProvider>(
       builder: (_, obProv, prov, _) {
         return Scaffold(
           body: Container(
-            padding: const EdgeInsets.fromLTRB(16, 90, 16, 32),
+            height: size.height,
+            width: size.width,
+            padding: const EdgeInsets.fromLTRB(20, 70, 20, 0),
             decoration: const BoxDecoration(
               image: DecorationImage(
                 image: AssetImage("assets/login-signup-bg.png"),
                 fit: BoxFit.cover,
               ),
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.center,
+            child: Stack(
+              fit: StackFit.loose,
               children: [
-                SizedBox(
-                  width: MediaQuery.sizeOf(context).width,
-                  child: Image.asset(
-                    "assets/login-signup-image.png",
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  "Un moyen simple\nde gérer votre budget",
-                  style: Theme.of(
-                    context,
-                  ).textTheme.headlineLarge!.copyWith(fontSize: 28),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  "Suivez les dépenses terrain et générez vos rapports en un clic.",
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge!.copyWith(fontSize: 18),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 32),
-
-                /// Sign up && Login buttons
                 Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Signup Button
-                    MaterialButton(
-                      onPressed: () async {
-                        await obProv.setFirstTimeComplete();
-                        if (!context.mounted) return;
-                        Navigator.pushNamed(context, "/signup");
-                      },
-                      color: Theme.of(context).colorScheme.onPrimary,
-                      elevation: 0,
-                      minWidth: double.infinity,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(90),
-                        side: BorderSide(
-                          width: 0.5,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.3),
-                        ),
+                    const SizedBox(
+                      height: 100,
+                      child: Image(
+                        image: AssetImage("assets/logo-td-ob.png"),
+                        fit: BoxFit.cover,
                       ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 16,
+                    ),
+                    // title
+                    Text.rich(
+                      TextSpan(
+                        text: "Un moyen simple\nde gérer votre",
+                        children: [
+                          TextSpan(
+                            text: " budget",
+                            style: theme.textTheme.headlineLarge!.copyWith(
+                              fontWeight: FontWeight.w900,
+                              color: theme.colorScheme.secondary,
+                              fontSize: 40,
+                            ),
+                          ),
+                        ],
                       ),
-                      child: Text(
-                        "Créer un compte",
-                        softWrap: false,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
+                      style: theme.textTheme.headlineLarge!.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        fontSize: 40,
                       ),
                     ),
                     const SizedBox(height: 12),
-                    MaterialButton(
-                      onPressed: () async {
-                        await obProv.setFirstTimeComplete();
-                        if (!context.mounted) return;
-                        Navigator.pushNamed(context, "/login");
-                      },
-                      color: Theme.of(context).colorScheme.primary,
-                      elevation: 0,
-                      minWidth: double.infinity,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(90),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 16,
-                      ),
-                      child: Text(
-                        "Se connecter",
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onPrimary,
-                        ),
+                    Text(
+                      "Suivez les dépenses terrain et générez\nvos rapports en un clic.",
+                      style: theme.textTheme.bodyMedium!.copyWith(
+                        color: Colors.white,
+                        fontSize: 18,
                       ),
                     ),
+                    const SizedBox(height: 30),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Sign up button
+                        Expanded(
+                          child: MaterialButton(
+                            onPressed: () async {
+                              await obProv.setFirstTimeComplete();
+                              if (!context.mounted) return;
+                              Navigator.pushNamed(context, "/signup");
+                            },
+                            height: 46,
+                            shape: const StadiumBorder(
+                              side: BorderSide(width: 1, color: Colors.white24),
+                            ),
+                            child: Text(
+                              "S'inscrire",
+                              style: theme.textTheme.bodyMedium!.copyWith(
+                                fontSize: 17,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Login button
+                        Expanded(
+                          child: MaterialButton(
+                            onPressed: () async {
+                              await obProv.setFirstTimeComplete();
+                              if (!context.mounted) return;
+                              Navigator.pushNamed(context, "/login");
+                            },
+                            height: 46,
+                            color: Colors.white,
+                            elevation: 0,
+                            shape: const StadiumBorder(),
+                            child: Text(
+                              "Se connecter",
+                              style: theme.textTheme.bodyMedium!.copyWith(
+                                fontSize: 17,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
+                ),
+
+                // woman agent image
+                const Positioned(
+                  left: 20,
+                  right: 20,
+                  bottom: 0,
+                  child: SizedBox(
+                    height: 350,
+                    child: Image(
+                      image: AssetImage("assets/woman-agent-image.png"),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
                 ),
               ],
             ),

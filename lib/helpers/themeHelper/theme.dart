@@ -14,7 +14,7 @@ class ThemeHelper {
       onSecondary: Color(0xff441B04),
     ),
     //
-    textTheme: GoogleFonts.manropeTextTheme(
+    textTheme: GoogleFonts.urbanistTextTheme(
       const TextTheme(
         bodyLarge: TextStyle(color: Color(0xff697177)),
         bodyMedium: TextStyle(color: Color(0xff697177)),
@@ -41,7 +41,7 @@ class ThemeHelper {
       onSecondary: Color(0xff441B04),
     ),
     //
-    textTheme: GoogleFonts.manropeTextTheme(
+    textTheme: GoogleFonts.urbanistTextTheme(
       const TextTheme(
         bodyLarge: TextStyle(color: Colors.white70),
         bodyMedium: TextStyle(color: Colors.white60),

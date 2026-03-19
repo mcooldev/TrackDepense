@@ -91,7 +91,7 @@ class UserProvider with ChangeNotifier {
       //
       final emailToSubmit = Uri(
         scheme: 'mailto',
-        path: 'mcooldev96@gmail.com',
+        path: 'trackdepenses@gmail.com',
         query: queries.entries
             .map(
               (e) =>
@@ -165,10 +165,7 @@ class UserProvider with ChangeNotifier {
             ),
             elevation: 0,
             color: Theme.of(context).colorScheme.surface,
-            child: const Text(
-              "Annuler",
-              style: TextStyle(color: Colors.red),
-            ),
+            child: const Text("Annuler", style: TextStyle(color: Colors.red)),
           ),
           MaterialButton(
             onPressed: () => Navigator.pop(context, true),
