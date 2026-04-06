@@ -1,8 +1,10 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:math';
 import 'dart:developer' as dev;
 
+import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
@@ -35,8 +37,9 @@ class TransactionProvider with ChangeNotifier {
     required bool isClosed,
     required String searchQuery,
   }) async {
+    final currentUser = pb.authStore.record;
     if (isLoading) return [];
-    if (pb.authStore.record == null) return [];
+    if (currentUser == null) return [];
     //
     _isLoading = true;
     notifyListeners();
@@ -44,7 +47,7 @@ class TransactionProvider with ChangeNotifier {
       //
       final expand = "depenses_via_missionId,entrees_via_missionId";
       String filter =
-          "user = '${pb.authStore.record?.id}' && isClosed = $isClosed";
+          "user = '${currentUser.id}' && isClosed = $isClosed && organizationId = '${currentUser.getStringValue("organizationId")}'";
       if (searchQuery.isNotEmpty) {
         filter += " && nom ~ '$searchQuery'";
       }
@@ -151,7 +154,7 @@ class TransactionProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     //
-    final File? image = _imageJustificatif;
+    final XFile? image = _imageJustificatif;
     //
     try {
       await pb
@@ -162,9 +165,10 @@ class TransactionProvider with ChangeNotifier {
             files: image == null
                 ? []
                 : [
-                    await http.MultipartFile.fromPath(
+                    http.MultipartFile.fromBytes(
                       'justificatif',
-                      _imageJustificatif!.path,
+                      await _imageJustificatif!.readAsBytes(),
+                      filename: _imageJustificatif!.name,
                     ),
                   ],
           );
@@ -174,6 +178,7 @@ class TransactionProvider with ChangeNotifier {
       await updateMissionCapital(mission);
       //
       _imageJustificatif = null;
+      _imageJustificatifBytes = null;
     } catch (e) {
       dev.log("Error: $e");
       rethrow;
@@ -191,7 +196,7 @@ class TransactionProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     //
-    final File? image = _imageJustificatif;
+    final XFile? image = _imageJustificatif;
     //
     try {
       //
@@ -203,9 +208,10 @@ class TransactionProvider with ChangeNotifier {
             files: image == null
                 ? []
                 : [
-                    await http.MultipartFile.fromPath(
+                    http.MultipartFile.fromBytes(
                       'justificatif',
-                      _imageJustificatif!.path,
+                      await _imageJustificatif!.readAsBytes(),
+                      filename: _imageJustificatif!.name,
                     ),
                   ],
           );
@@ -215,6 +221,7 @@ class TransactionProvider with ChangeNotifier {
       await updateMissionCapital(mission);
       //
       _imageJustificatif = null;
+      _imageJustificatifBytes = null;
     } catch (e) {
       dev.log("Error: $e");
       rethrow;
@@ -332,7 +339,7 @@ class TransactionProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     //
-    final File? image = _imageJustificatif;
+    final XFile? image = _imageJustificatif;
     //
     try {
       //
@@ -345,9 +352,10 @@ class TransactionProvider with ChangeNotifier {
             files: image == null
                 ? []
                 : [
-                    await http.MultipartFile.fromPath(
+                    http.MultipartFile.fromBytes(
                       'justificatif',
-                      _imageJustificatif!.path,
+                      await _imageJustificatif!.readAsBytes(),
+                      filename: _imageJustificatif!.name,
                     ),
                   ],
           );
@@ -357,6 +365,7 @@ class TransactionProvider with ChangeNotifier {
       await updateMissionCapital(mission);
       //
       _imageJustificatif = null;
+      _imageJustificatifBytes = null;
     } catch (e) {
       dev.log("Erreur lors de la mise à jour de l'entrée : $e");
       rethrow;
@@ -377,7 +386,7 @@ class TransactionProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     //
-    final File? image = _imageJustificatif;
+    final XFile? image = _imageJustificatif;
     //
     try {
       //
@@ -390,9 +399,10 @@ class TransactionProvider with ChangeNotifier {
             files: image == null
                 ? []
                 : [
-                    await http.MultipartFile.fromPath(
+                    http.MultipartFile.fromBytes(
                       'justificatif',
-                      _imageJustificatif!.path,
+                      await _imageJustificatif!.readAsBytes(),
+                      filename: _imageJustificatif!.name,
                     ),
                   ],
           );
@@ -402,6 +412,7 @@ class TransactionProvider with ChangeNotifier {
       await updateMissionCapital(mission);
       //
       _imageJustificatif = null;
+      _imageJustificatifBytes = null;
     } catch (e) {
       dev.log("Erreur lors de la mise à jour de la dépense : $e");
       rethrow;
@@ -729,6 +740,7 @@ class TransactionProvider with ChangeNotifier {
     _hintValueFin = "";
     _selectedIndex = -1;
     _imageJustificatif = null;
+    _imageJustificatifBytes = null;
     notifyListeners();
   }
 
@@ -743,11 +755,14 @@ class TransactionProvider with ChangeNotifier {
   }
 
   /// Justificatif de la dépense
-  File? _imageJustificatif;
+  XFile? _imageJustificatif;
+  Uint8List? _imageJustificatifBytes;
 
-  File? get imageJustificatif => _imageJustificatif;
+  XFile? get imageJustificatif => _imageJustificatif;
 
-  set imageJustificatif(File? value) {
+  Uint8List? get imageJustificatifBytes => _imageJustificatifBytes;
+
+  set imageJustificatif(XFile? value) {
     _imageJustificatif = value;
     notifyListeners();
   }
@@ -761,12 +776,14 @@ class TransactionProvider with ChangeNotifier {
       maxWidth: 1280,
     );
     if (pickedImage != null) {
-      _imageJustificatif = File(pickedImage.path);
+      _imageJustificatif = pickedImage;
+      _imageJustificatifBytes = await pickedImage.readAsBytes();
       notifyListeners();
     }
   }
 
   Future<void> pickImageJustificatifFromCamera() async {
+    if (kIsWeb) return;
     final picker = ImagePicker();
     final XFile? pickedImage = await picker.pickImage(
       source: ImageSource.camera,
@@ -775,7 +792,8 @@ class TransactionProvider with ChangeNotifier {
       maxWidth: 1280,
     );
     if (pickedImage != null) {
-      _imageJustificatif = File(pickedImage.path);
+      _imageJustificatif = pickedImage;
+      _imageJustificatifBytes = await pickedImage.readAsBytes();
       notifyListeners();
     }
   }
@@ -831,6 +849,7 @@ class TransactionProvider with ChangeNotifier {
     montanEntreeController.dispose();
     descriptionEntreeController.dispose();
     _imageJustificatif = null;
+    _imageJustificatifBytes = null;
     _selectedIndex = -1;
     super.dispose();
   }

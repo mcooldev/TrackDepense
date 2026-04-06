@@ -1,8 +1,12 @@
 import 'dart:developer';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:pocketbase/pocketbase.dart';
+import 'package:provider/provider.dart';
+import 'package:track_depenses/web_view/web_providers/home_web_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../helpers/pocketBaseHelper/pocketbase_db.dart';
@@ -71,6 +75,57 @@ class UserProvider with ChangeNotifier {
   final TextEditingController messageController = TextEditingController();
   final pb = PocketBaseDb.instance.pb;
 
+  ///
+  bool _isOrgStillActive = false;
+  bool _isLoading = false;
+
+  bool get isOrgStillActive => _isOrgStillActive;
+
+  bool get isLoading => _isLoading;
+
+  Future<void> checkSubscription() async {
+    if (_isLoading) return;
+    //
+    try {
+      _isLoading = true;
+      notifyListeners();
+      //
+      final currentUser = pb.authStore.record;
+      if (currentUser == null) return;
+      //
+      final orgId = currentUser.getStringValue("organizationId");
+      if (orgId.isEmpty) return;
+      //
+      final record = await pb.collection('organizations').getOne(orgId);
+      //
+      final orgSubscriptionDate = record.getStringValue("subscription_until");
+      if (orgSubscriptionDate.isEmpty) return;
+      final parsedDate = DateTime.parse(orgSubscriptionDate);
+      //
+      final currentDate = DateTime.now();
+      //
+      final isActive = record.getBoolValue("is_active");
+      //
+      _isOrgStillActive = isActive && currentDate.isBefore(parsedDate);
+    } on ClientException catch (e) {
+      if (e.statusCode == 403) {
+        log("Accès refusé — règles PocketBase à vérifier");
+        return; // ✅ ne change pas _isOrgStillActive
+      }
+      if (e.statusCode == 404) {
+        log("Organisation introuvable");
+        _isOrgStillActive = false;
+        return;
+      }
+      log("Erreur ClientException: $e");
+    } catch (e) {
+      log("Erreur lors de la vérification de la souscription: $e");
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<bool> onSubmitForm() async {
     if (!supportFormKey.currentState!.validate()) return false;
     try {
@@ -128,6 +183,10 @@ class UserProvider with ChangeNotifier {
       context: context,
       fullscreenDialog: true,
       builder: (context) => AlertDialog(
+        constraints: BoxConstraints(
+          maxWidth: kIsWeb ? 500 : MediaQuery.sizeOf(context).width * 0.8,
+        ),
+        alignment: Alignment.center,
         shape: ContinuousRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
@@ -158,22 +217,24 @@ class UserProvider with ChangeNotifier {
         actions: [
           MaterialButton(
             onPressed: () => Navigator.pop(context, false),
-            minWidth: MediaQuery.sizeOf(context).width * 0.3,
+            minWidth: kIsWeb ? 200 : MediaQuery.sizeOf(context).width * 0.3,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(80),
               side: BorderSide(width: 1, color: Colors.grey.shade200),
             ),
             elevation: 0,
+            height: kIsWeb ? 50 : null,
             color: Theme.of(context).colorScheme.surface,
             child: const Text("Annuler", style: TextStyle(color: Colors.red)),
           ),
           MaterialButton(
             onPressed: () => Navigator.pop(context, true),
-            minWidth: MediaQuery.sizeOf(context).width * 0.3,
+            minWidth: kIsWeb ? 200 : MediaQuery.sizeOf(context).width * 0.3,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(80),
             ),
             elevation: 0,
+            height: kIsWeb ? 50 : null,
             color: Theme.of(context).colorScheme.primary,
             child: Text(
               "Oui",
@@ -188,6 +249,10 @@ class UserProvider with ChangeNotifier {
       if (!context.mounted) return;
       //
       resetIndex();
+      if (kIsWeb) {
+        final prov = Provider.of<HomeWebProvider>(context, listen: false);
+        prov.selectedIndex = 0;
+      }
       //
       PocketBaseDb.instance.pb.realtime.unsubscribe();
       PocketBaseDb.instance.pb.authStore.clear();
@@ -198,6 +263,7 @@ class UserProvider with ChangeNotifier {
       //
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
+          width: kIsWeb ? 400 : null,
           content: const Text("👋🏾️ • Déconnexion réussie"),
           backgroundColor: Theme.of(context).colorScheme.primary,
           behavior: SnackBarBehavior.floating,
@@ -206,6 +272,8 @@ class UserProvider with ChangeNotifier {
       );
     }
   }
+
+  ///
 
   /// Disposer
   @override

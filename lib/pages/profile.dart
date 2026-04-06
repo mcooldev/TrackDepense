@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -97,11 +98,66 @@ class _ProfileState extends State<Profile> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const CircleAvatar(
-                      radius: 50,
-                      backgroundImage: AssetImage(
-                        "assets/td_launcher_icon.png",
-                      ),
+                    Builder(
+                      builder: (context) {
+                        ///
+                        final currentUser = pb.authStore.record;
+                        if (currentUser == null) return const SizedBox();
+                        final orgId = currentUser.getStringValue(
+                          "organizationId",
+                        );
+                        final records = pb
+                            .collection("organizations")
+                            .getOne(orgId);
+
+                        ///
+                        return FutureBuilder(
+                          future: records,
+                          builder: (context, asyncSnapshot) {
+                            ///
+                            final record = asyncSnapshot.data;
+                            if (record == null) return const SizedBox();
+                            final logoUrl = pb.files.getUrl(
+                              record,
+                              record.getStringValue("logo"),
+                            );
+
+                            ///
+                            return Container(
+                              width: 75,
+                              height: 75,
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(120),
+                                border: Border.all(
+                                  width: 1,
+                                  color:
+                                      Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.white.withValues(alpha: 0.2)
+                                      : Colors.grey.shade200,
+                                ),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(120),
+                                child: CachedNetworkImage(
+                                  imageUrl: logoUrl.toString(),
+                                  placeholder: (context, url) => const Center(
+                                    child: CircularProgressIndicator.adaptive(),
+                                  ),
+                                  errorWidget: (context, url, error) =>
+                                      const HugeIcon(
+                                        icon:
+                                            HugeIcons.strokeRoundedUnavailable,
+                                        size: 75,
+                                        color: Colors.grey,
+                                      ),
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      },
                     ),
                     const SizedBox(height: 16),
                     // User name
@@ -117,6 +173,31 @@ class _ProfileState extends State<Profile> {
                       style: Theme.of(
                         context,
                       ).textTheme.titleMedium!.copyWith(color: Colors.grey),
+                    ),
+                    const SizedBox(height: 16),
+                    // user badge
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(5, 5, 10, 5),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(90),
+                        color: Colors.green,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const HugeIcon(
+                            icon: HugeIcons.strokeRoundedCheckmarkBadge01,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            currentUser?.getStringValue('role').toUpperCase() ??
+                                "Inconnu",
+                            style: Theme.of(context).textTheme.bodyMedium!
+                                .copyWith(color: Colors.white),
+                          ),
+                        ],
+                      ),
                     ),
                     //
                     const SizedBox(height: 24),

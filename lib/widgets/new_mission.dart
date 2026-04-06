@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:track_depenses/helpers/error_helper.dart';
 import 'package:track_depenses/helpers/pocketBaseHelper/pocketbase_db.dart';
 import 'package:track_depenses/widgets/text_form_field_widget.dart';
 
@@ -55,7 +56,9 @@ class _NewMissionState extends State<NewMission> {
   @override
   Widget build(BuildContext context) {
     ///
-    final userId = pb.authStore.record?.id;
+    final user = pb.authStore.record;
+    final userId = user?.id;
+    final userOrganization = user?.getStringValue("organizationId");
 
     ///
     return Scaffold(
@@ -102,6 +105,7 @@ class _NewMissionState extends State<NewMission> {
                   hintText: "Ex: 100000",
                   isLabel: true,
                   label: "Budget Initial",
+                  isAmount: true,
                   iconData: CupertinoIcons.number,
                   isPassword: false,
                   keyboardType: const TextInputType.numberWithOptions(
@@ -180,6 +184,7 @@ class _NewMissionState extends State<NewMission> {
                             TextFormFieldWidget(
                               controller: prov.amountGoalController,
                               hintText: "Montant objectif",
+                              isAmount: true,
                               iconData: CupertinoIcons.number,
                               isPassword: false,
                               validator: (val) {
@@ -346,7 +351,7 @@ class _NewMissionState extends State<NewMission> {
                       return;
                     }
                     //
-                    if (userId == null) return;
+                    if (userId == null || userOrganization == null) return;
                     final newMission = Mission(
                       id: widget.missionToEdit?.id,
                       nom: prov.nomController.text.trim(),
@@ -363,18 +368,38 @@ class _NewMissionState extends State<NewMission> {
                           : null,
                       dateDebut: prov.dateDebut!,
                       dateFin: prov.dateFin!,
+                      organizationId: userOrganization
                     );
                     //
-                    if (widget.missionToEdit != null) {
-                      await prov.updateMissionToPb(mission: newMission);
-                    } else {
-                      await prov.addMissionToPb(newMission);
+                    try {
+                      if (widget.missionToEdit != null) {
+                        await prov.updateMissionToPb(mission: newMission);
+                      } else {
+                        await prov.addMissionToPb(newMission);
+                      }
+                      //
+                      prov.clearControllers();
+                      //
+                      if (!context.mounted) return;
+                      Navigator.of(context).pop(newMission);
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            "❌ • ${parsePbError(e)}",
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium!
+                                .copyWith(color: Colors.white),
+                          ),
+                          backgroundColor:
+                              Theme.of(context).colorScheme.error,
+                          behavior: SnackBarBehavior.floating,
+                          shape: const StadiumBorder(),
+                        ),
+                      );
                     }
-                    //
-                    prov.clearControllers();
-                    //
-                    if (!context.mounted) return;
-                    Navigator.of(context).pop(newMission);
                   },
                   splashColor: Theme.of(
                     context,

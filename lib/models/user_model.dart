@@ -1,22 +1,41 @@
+import 'package:pocketbase/pocketbase.dart';
+
 class UserModel {
   UserModel({
-    this.emailVisibility = true,
     required this.email,
-    required this.password,
-    this.passwordConfirm,
+    this.password,
+    this.organizationId,
     this.name,
+    this.userRole,
   });
 
   final String email;
-  final String password;
-  final bool? emailVisibility;
-  final String? name, passwordConfirm;
+  final String? password;
+  final String? name;
+  final String? userRole;
+  final String? organizationId;
 
   Map<String, dynamic> toMap() => {
     "email": email,
-    "emailVisibility": emailVisibility,
     "name": name,
     "password": password,
-    "passwordConfirm": passwordConfirm,
+    "userRole": userRole,
+    "organizationId": organizationId,
   };
+
+  factory UserModel.fromRecord(RecordModel record) {
+    final email = record.getStringValue("email");
+    final name = record.getStringValue("name");
+    final userRole = record.getStringValue("role");
+    final organizationId = record.getStringValue("organizationId");
+
+    return UserModel(
+      email: email,
+      userRole: userRole,
+      name: name,
+      organizationId: organizationId,
+    );
+  }
+
+  ///
 }

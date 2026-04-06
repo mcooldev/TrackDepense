@@ -82,27 +82,27 @@ class _LoginSignupState extends State<LoginSignup> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         // Sign up button
-                        Expanded(
-                          child: MaterialButton(
-                            onPressed: () async {
-                              await obProv.setFirstTimeComplete();
-                              if (!context.mounted) return;
-                              Navigator.pushNamed(context, "/signup");
-                            },
-                            height: 46,
-                            shape: const StadiumBorder(
-                              side: BorderSide(width: 1, color: Colors.white24),
-                            ),
-                            child: Text(
-                              "S'inscrire",
-                              style: theme.textTheme.bodyMedium!.copyWith(
-                                fontSize: 17,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
+                        // Expanded(
+                        //   child: MaterialButton(
+                        //     onPressed: () async {
+                        //       await obProv.setFirstTimeComplete();
+                        //       if (!context.mounted) return;
+                        //       Navigator.pushNamed(context, "/signup");
+                        //     },
+                        //     height: 46,
+                        //     shape: const StadiumBorder(
+                        //       side: BorderSide(width: 1, color: Colors.white24),
+                        //     ),
+                        //     child: Text(
+                        //       "S'inscrire",
+                        //       style: theme.textTheme.bodyMedium!.copyWith(
+                        //         fontSize: 17,
+                        //         color: Colors.white,
+                        //       ),
+                        //     ),
+                        //   ),
+                        // ),
+                        // const SizedBox(width: 8),
                         // Login button
                         Expanded(
                           child: MaterialButton(

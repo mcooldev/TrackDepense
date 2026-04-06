@@ -10,6 +10,7 @@ class TextFormFieldWidget extends StatefulWidget {
     required this.validator,
     this.isPassword = false,
     this.isLabel = false,
+    this.isAmount = false,
     this.keyboardType,
     this.label,
     this.onTap,
@@ -22,6 +23,7 @@ class TextFormFieldWidget extends StatefulWidget {
   final String? Function(String?) validator;
   final bool isPassword;
   final bool isLabel;
+  final bool isAmount;
   final TextInputType? keyboardType;
   final void Function()? onTap;
 
@@ -70,25 +72,48 @@ class _TextFormFieldWidgetState extends State<TextFormFieldWidget> {
         //
         contentPadding: const EdgeInsets.symmetric(horizontal: 16),
         //
-        prefixIcon: Icon(widget.iconData, color: Colors.grey),
+        prefixIcon: widget.isAmount
+            ? const SizedBox(
+                width: 24,
+                height: 40,
+                child: Column(
+                  mainAxisSize: MainAxisSize.max,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '  XOF',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : Icon(widget.iconData, color: Colors.grey),
         //
         suffixIcon: widget.isPassword
-            ? IconButton(
-                onPressed: () {
-                  setState(() {
-                    obscure = !obscure;
-                  });
-                },
-                icon: obscure
-                    ? Icon(
-                        CupertinoIcons.eye,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      )
-                    : Icon(
-                        CupertinoIcons.eye_slash,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-              )
+            ? Padding(
+              padding: const EdgeInsets.only(right: 5.0),
+              child: IconButton(
+                  onPressed: () {
+                    setState(() {
+                      obscure = !obscure;
+                    });
+                  },
+                  icon: obscure
+                      ? Icon(
+                          CupertinoIcons.eye,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        )
+                      : Icon(
+                          CupertinoIcons.eye_slash,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                ),
+            )
             : null,
         //
         hintText: widget.hintText,

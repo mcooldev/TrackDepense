@@ -1,7 +1,9 @@
 import 'dart:developer';
-import 'dart:io';
+import 'dart:io' show File;
+import 'dart:js_interop';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
@@ -16,6 +18,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:track_depenses/helpers/pocketBaseHelper/pocketbase_db.dart';
 import 'package:track_depenses/models/transaction_model.dart';
+import 'package:web/web.dart' as web;
 
 class ShareFilesProvider with ChangeNotifier {
   /// Take screenshot of the current screen and share it as an image file.
@@ -51,14 +54,23 @@ class ShareFilesProvider with ChangeNotifier {
       //
       if (image != null) {
         //
-        final directory = await getTemporaryDirectory();
         final timestamp = DateTime.now().millisecondsSinceEpoch;
-        final path = "${directory.path}/screenshot_$timestamp.png";
-        //
-        await File(path).writeAsBytes(image);
+        final XFile xfile;
+        if (kIsWeb) {
+          xfile = XFile.fromData(
+            image,
+            mimeType: 'image/png',
+            name: 'screenshot_$timestamp.png',
+          );
+        } else {
+          final directory = await getTemporaryDirectory();
+          final path = "${directory.path}/screenshot_$timestamp.png";
+          await File(path).writeAsBytes(image);
+          xfile = XFile(path);
+        }
         //
         await SharePlus.instance.share(
-          ShareParams(files: [XFile(path)], text: "Reçu de transaction"),
+          ShareParams(files: [xfile], text: "Reçu de transaction"),
         );
         //
         if (!context.mounted) return;
@@ -138,6 +150,9 @@ class ShareFilesProvider with ChangeNotifier {
     Mission mission,
     List<dynamic> transactions,
   ) async {
+    _pdfStep = 1;
+    notifyListeners();
+    //
     final pdf = pw.Document(title: "Rapport de la mission : ${mission.nom}");
     final pb = PocketBaseDb.instance.pb;
 
@@ -173,6 +188,9 @@ class ShareFilesProvider with ChangeNotifier {
     //
     List<pw.Widget> imagesWidget = List.empty(growable: true);
 
+    _pdfStep = 2;
+    notifyListeners();
+    //
     if (trxWithImages.isNotEmpty) {
       for (var trx in trxWithImages) {
         //
@@ -226,6 +244,9 @@ class ShareFilesProvider with ChangeNotifier {
       }
     }
 
+    _pdfStep = 3;
+    notifyListeners();
+
     ///
     pdf.addPage(
       pw.MultiPage(
@@ -242,8 +263,8 @@ class ShareFilesProvider with ChangeNotifier {
             (sum, item) => sum + item.montant,
           );
           //
-          final userName =
-              pb.authStore.record?.getStringValue("name") ?? "Inconnu";
+          final userName = mission.user;
+          //
 
           ///
           return [
@@ -440,7 +461,7 @@ class ShareFilesProvider with ChangeNotifier {
 
             /// Trx images headline
             pw.Text(
-              "Preuves justificatives des transactions",
+              "Pièces justificatives des transactions",
               style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
             ),
             pw.SizedBox(height: 8),
@@ -453,8 +474,68 @@ class ShareFilesProvider with ChangeNotifier {
         },
       ),
     );
+    _pdfStep = 4;
+    notifyListeners();
     //
     return pdf.save();
+  }
+
+  int _pdfStep = 0;
+
+  int get pdfStep => _pdfStep;
+
+  final List<String> _pdfSteps = [
+    "Récupération des données...",
+    "Génération du rapport...",
+    "Traitement des images...",
+    "Finalisation du PDF...",
+    "Téléchargement en cours...",
+  ];
+
+  String get pdfStepLabel => _pdfSteps[_pdfStep.clamp(0, _pdfSteps.length - 1)];
+
+  bool _isCreatingPdfWeb = false;
+
+  bool get isCreatingPdfWeb => _isCreatingPdfWeb;
+
+  Future<void> downloadPdfWeb(
+    BuildContext context,
+    Mission mission,
+    List<dynamic> transactions,
+  ) async {
+    _isCreatingPdfWeb = true;
+    notifyListeners();
+    try {
+      _pdfStep = 1;
+      notifyListeners();
+      final pdfBytes = await getCachedPdf(context, mission, transactions);
+
+      _pdfStep = 4;
+      notifyListeners();
+      //
+      final blob = web.Blob(
+        [pdfBytes.buffer.toJS].toJS,
+        web.BlobPropertyBag(type: 'application/pdf'),
+      );
+      final url = web.URL.createObjectURL(blob);
+
+      final anchor = web.document.createElement('a') as web.HTMLAnchorElement
+        ..href = url
+        ..setAttribute('download', 'Rapport_${mission.nom}.pdf');
+      //
+      web.document.body!.append(anchor);
+      anchor.click();
+      web.document.body!.removeChild(anchor);
+      //
+      web.URL.revokeObjectURL(url);
+      log("✅ Téléchargement lancé côté Admin");
+    } catch (e) {
+      log("❌ Erreur téléchargement : $e");
+    } finally {
+      _isCreatingPdfWeb = false;
+      _pdfStep = 0;
+      notifyListeners();
+    }
   }
 
   Future<void> createAndSharePdf(
@@ -469,7 +550,6 @@ class ShareFilesProvider with ChangeNotifier {
       //
       final pdfBytes = await getCachedPdf(context, mission, transactions);
       //
-      final directory = await getTemporaryDirectory();
       final formattedNow = DateFormat(
         "dd_MM_yyyy_HH_mm",
       ).format(DateTime.now());
@@ -478,15 +558,26 @@ class ShareFilesProvider with ChangeNotifier {
           .toLowerCase()
           .replaceAll(RegExp(r'[^\w\s-]'), '')
           .replaceAll(RegExp(r'[^\s+]'), '_')
-          .replaceAll(RegExp(r'[^_+]'), '_');
-      final path =
-          "${directory.path}/Rapport_${sanitizedMissionName}_$formattedNow.pdf";
+          .replaceAll(RegExp(r"[^_+]"), '_');
+      final fileName = 'Rapport_${sanitizedMissionName}_$formattedNow.pdf';
       //
-      await File(path).writeAsBytes(pdfBytes);
+      final XFile xfile;
+      if (kIsWeb) {
+        xfile = XFile.fromData(
+          pdfBytes,
+          mimeType: 'application/pdf',
+          name: fileName,
+        );
+      } else {
+        final directory = await getTemporaryDirectory();
+        final path = "${directory.path}/$fileName";
+        await File(path).writeAsBytes(pdfBytes);
+        xfile = XFile(path);
+      }
       //
       await SharePlus.instance.share(
         ShareParams(
-          files: [XFile(path)],
+          files: [xfile],
           text: "Rapport de mission : ${mission.nom}",
         ),
       );

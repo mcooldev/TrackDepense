@@ -22,23 +22,13 @@ class PocketBaseDb {
     pb = PocketBase(config.baseUrl, authStore: store);
   }
 
-  Future<void> createAndLogUser(UserModel user) async {
-    try {
-      await pb.collection('users').create(body: user.toMap());
-      await pb.collection("users").authWithPassword(user.email, user.password);
-    } catch (e) {
-      log(e.toString());
-    }
-  }
+  // Future<void> createAndLogUser(UserModel user) async {
+  //   await pb.collection('users').create(body: user.toMap());
+  //   await pb.collection("users").authWithPassword(user.email, user.password);
+  // }
 
-  Future<bool> loginUser(UserModel user) async {
-    try {
-      await pb.collection("users").authWithPassword(user.email, user.password);
-      return true;
-    } catch (e) {
-      log(e.toString());
-      return false;
-    }
+  Future<void> loginUser(UserModel user) async {
+    await pb.collection("users").authWithPassword(user.email, user.password!);
   }
 
   Future<void> resetPassword(BuildContext context, String? enteredEmail) async {
@@ -49,6 +39,7 @@ class PocketBaseDb {
       if (existedEmail == null || existedEmail.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
+            width: 500,
             content: Text(
               "❌ • Pas d'email fourni !",
               style: Theme.of(
@@ -68,6 +59,7 @@ class PocketBaseDb {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
+          width: 500,
           content: Text(
             "🎊 • Email envoyé avec succès !",
             style: Theme.of(

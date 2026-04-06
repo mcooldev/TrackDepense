@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -17,7 +18,9 @@ class _SplashState extends State<Splash> {
   @override
   void initState() {
     super.initState();
-    _checkIsFirstTime(context);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkIsFirstTime(context);
+    });
   }
 
   //
@@ -34,6 +37,10 @@ class _SplashState extends State<Splash> {
       //
       if (!context.mounted) return;
       if (onBoardingProvider.isFirstTime) {
+        if (kIsWeb) {
+          Navigator.pushReplacementNamed(context, "/loginWeb");
+          return;
+        }
         Navigator.pushReplacementNamed(context, "/loginSignup");
         return;
       }

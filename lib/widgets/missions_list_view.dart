@@ -50,7 +50,7 @@ class _MissionsListViewState extends State<MissionsListView> {
                       ),
                     ),
                     Text(
-                      "${widget.missions.length.toString().padLeft(2, '0')} mission${widget.missions.length == 1 ? '' : 's'}",
+                      "${widget.missions.length.toString().padLeft(2, '0')} mission${(widget.missions.isEmpty || widget.missions.length == 1) ? '' : 's'}",
                       style: TextStyle(
                         fontSize: 16,
                         color: Theme.of(context).brightness == Brightness.dark
@@ -80,13 +80,12 @@ class _MissionsListViewState extends State<MissionsListView> {
                       //
                       return MissionContainerWidget(
                         onTap: () {
-                          Navigator.of(context)
-                              .push(
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      MissionDetail(mission: mission),
-                                ),
-                              );
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  MissionDetail(mission: mission),
+                            ),
+                          );
                         },
                         missionIcon: mission.nom.substring(0, 1),
                         montantObjectif: mission.amountGoal,

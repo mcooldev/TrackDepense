@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:track_depenses/helpers/error_helper.dart';
 import 'package:track_depenses/widgets/text_form_field_widget.dart';
 
 import '../helpers/pocketBaseHelper/trx_db.dart';
@@ -99,7 +101,8 @@ class _NewExpenseState extends State<NewExpense> {
                 TextFormFieldWidget(
                   controller: prov.montantDepenseController,
                   hintText: "Montant de la dépense",
-                  iconData: CupertinoIcons.money_dollar,
+                  isAmount: true,
+                  iconData: CupertinoIcons.number,
                   isLabel: true,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: false,
@@ -137,7 +140,7 @@ class _NewExpenseState extends State<NewExpense> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      "Image justificatif de la dépense",
+                      "Image justificative de la dépense",
                       style: Theme.of(context).textTheme.bodyLarge!.copyWith(
                         color: Theme.of(context).colorScheme.onSurface,
                       ),
@@ -185,9 +188,9 @@ class _NewExpenseState extends State<NewExpense> {
                                 ),
                               ],
                             )
-                          : prov.imageJustificatif != null
-                          ? Image.file(
-                              prov.imageJustificatif!,
+                          : prov.imageJustificatifBytes != null
+                          ? Image.memory(
+                              prov.imageJustificatifBytes!,
                               fit: BoxFit.cover,
                             )
                           : Image.network(
@@ -247,6 +250,7 @@ class _NewExpenseState extends State<NewExpense> {
                                         textEntry: 'Galerie',
                                       ),
                                     ),
+                                    if (!kIsWeb) ...[
                                     const SizedBox(width: 12),
 
                                     // Pick image from camera
@@ -275,6 +279,7 @@ class _NewExpenseState extends State<NewExpense> {
                                         textEntry: 'Caméra',
                                       ),
                                     ),
+                                    ],
                                   ],
                                 ),
                               ],
@@ -367,41 +372,59 @@ class _NewExpenseState extends State<NewExpense> {
                       missionId: widget.mission.id!,
                     );
                     //
-                    if (widget.depenseToEdit != null) {
-                      await prov.updateDepenseOnPb(
-                        mission: widget.mission,
-                        depenseId: widget.depenseToEdit!.id!,
-                        data: newDepense.toMap(),
+                    try {
+                      if (widget.depenseToEdit != null) {
+                        await prov.updateDepenseOnPb(
+                          mission: widget.mission,
+                          depenseId: widget.depenseToEdit!.id!,
+                          data: newDepense.toMap(),
+                        );
+                      } else if (widget.mission.id != null) {
+                        await prov.addDepenseToPb(
+                          depense: newDepense,
+                          mission: widget.mission,
+                        );
+                      }
+                      //
+                      if (!context.mounted) return;
+                      prov.clearControllers();
+                      Navigator.of(context).pop();
+                      //
+                      prov.fetchTrx(
+                        missionId: widget.mission.id!,
+                        queryString: '',
                       );
-                    } else if (widget.mission.id != null) {
-                      await prov.addDepenseToPb(
-                        depense: newDepense,
-                        mission: widget.mission,
+                      //
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            widget.depenseToEdit != null
+                                ? "🎉✅🎊 • Dépense modifiée avec succès"
+                                : "🎉✅🎊 • Dépense ajoutée avec succès",
+                          ),
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
+                          behavior: SnackBarBehavior.floating,
+                          shape: const StadiumBorder(),
+                        ),
+                      );
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            "❌ • ${parsePbError(e)}",
+                            style: Theme.of(context).textTheme.bodyMedium!
+                                .copyWith(color: Colors.white),
+                          ),
+                          backgroundColor:
+                              Theme.of(context).colorScheme.error,
+                          behavior: SnackBarBehavior.floating,
+                          shape: const StadiumBorder(),
+                        ),
                       );
                     }
-                    //
-                    if (!context.mounted) return;
-                    prov.clearControllers();
-                    Navigator.of(context).pop();
-                    //
-                    prov.fetchTrx(
-                      missionId: widget.mission.id!,
-                      queryString: '',
-                    );
-                    //
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          widget.depenseToEdit != null
-                              ? "🎉✅🎊 • Dépense modifiée avec succès"
-                              : "🎉✅🎊 • Dépense ajoutée avec succès",
-                        ),
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        behavior: SnackBarBehavior.floating,
-                        shape: const StadiumBorder(),
-                      ),
-                    );
                   },
                   splashColor: Theme.of(
                     context,

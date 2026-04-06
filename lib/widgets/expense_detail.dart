@@ -141,7 +141,6 @@ class _ExpenseDetailState extends State<ExpenseDetail> {
             actions: [
               IconButton(
                 onPressed: () async {
-                  // todo: share expense receipt as image
                   await shareProv.shareAsImage(context);
                 },
                 icon: shareProv.isCapturing
@@ -462,7 +461,6 @@ class _ExpenseDetailState extends State<ExpenseDetail> {
                           Expanded(
                             child: MaterialButton(
                               onPressed: () async {
-                                // todo: delete transaction
                                 await prov.deleteTrxDialog(
                                   context,
                                   currentTrx,

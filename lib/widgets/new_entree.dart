@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:track_depenses/helpers/error_helper.dart';
 import 'package:track_depenses/widgets/add_entry_widget.dart';
 import 'package:track_depenses/widgets/text_form_field_widget.dart';
 
@@ -100,7 +102,8 @@ class _NewEntreeState extends State<NewEntree> {
                 TextFormFieldWidget(
                   controller: prov.montanEntreeController,
                   hintText: "Montant de l'entrée",
-                  iconData: CupertinoIcons.money_dollar,
+                  isAmount: true,
+                  iconData: CupertinoIcons.number,
                   isLabel: true,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: false,
@@ -138,7 +141,7 @@ class _NewEntreeState extends State<NewEntree> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      "Image justificatif de la dépense",
+                      "Image justificative de la dépense",
                       style: Theme.of(context).textTheme.bodyLarge!.copyWith(
                         color: Theme.of(context).colorScheme.onSurface,
                       ),
@@ -155,8 +158,7 @@ class _NewEntreeState extends State<NewEntree> {
                             : Colors.grey.shade100,
                         borderRadius: BorderRadius.circular(8),
                         border:
-                        (prov.imageJustificatif == null ||
-                            prov.imageJustificatif!.path.isEmpty)
+                        prov.imageJustificatifBytes == null
                             ? Border.all(
                           width: 1,
                           color:
@@ -186,9 +188,9 @@ class _NewEntreeState extends State<NewEntree> {
                           ),
                         ],
                       )
-                          : prov.imageJustificatif != null
-                          ? Image.file(
-                        prov.imageJustificatif!,
+                          : prov.imageJustificatifBytes != null
+                          ? Image.memory(
+                        prov.imageJustificatifBytes!,
                         fit: BoxFit.cover,
                       )
                           : Image.network(
@@ -256,6 +258,7 @@ class _NewEntreeState extends State<NewEntree> {
                                         textEntry: 'Galerie',
                                       ),
                                     ),
+                                    if (!kIsWeb) ...[
                                     const SizedBox(width: 12),
 
                                     // Pick image from camera
@@ -284,6 +287,7 @@ class _NewEntreeState extends State<NewEntree> {
                                         textEntry: 'Caméra',
                                       ),
                                     ),
+                                    ],
                                   ],
                                 ),
                               ],
@@ -352,46 +356,63 @@ class _NewEntreeState extends State<NewEntree> {
                       description: prov.descriptionEntreeController.text.trim(),
                       missionId: widget.mission.id ?? '',
                     );
-                    if (widget.entreeToEdit != null) {
-                      await prov.updateEntreeOnPb(
-                        mission: widget.mission,
-                        entreeId: widget.entreeToEdit!.id!,
-                        data: newEntree.toMap(),
+                    try {
+                      if (widget.entreeToEdit != null) {
+                        await prov.updateEntreeOnPb(
+                          mission: widget.mission,
+                          entreeId: widget.entreeToEdit!.id!,
+                          data: newEntree.toMap(),
+                        );
+                      } else if (widget.mission.id != null) {
+                        await prov.addEntreeToPb(
+                          entree: newEntree,
+                          mission: widget.mission,
+                        );
+                      }
+                      //
+                      if (!context.mounted) return;
+                      prov.clearControllers();
+                      Navigator.of(context).pop();
+                      //
+                      prov.fetchTrx(
+                        missionId: widget.mission.id!,
+                        queryString: '',
                       );
-                    } else if (widget.mission.id != null) {
-                      await prov.addEntreeToPb(
-                        entree: newEntree,
-                        mission: widget.mission,
+                      //
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            widget.entreeToEdit != null
+                                ? "🎉✅🎊 • Entrée modifiée avec succès"
+                                : "🎉✅🎊 • Entrée ajouté avec succès",
+                            style: Theme.of(context).textTheme.bodyMedium!
+                                .copyWith(
+                              color: Theme.of(context).colorScheme.onSecondary,
+                            ),
+                          ),
+                          backgroundColor:
+                              Theme.of(context).colorScheme.secondary,
+                          behavior: SnackBarBehavior.floating,
+                          shape: const StadiumBorder(),
+                        ),
+                      );
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            "❌ • ${parsePbError(e)}",
+                            style: Theme.of(context).textTheme.bodyMedium!
+                                .copyWith(color: Colors.white),
+                          ),
+                          backgroundColor:
+                              Theme.of(context).colorScheme.error,
+                          behavior: SnackBarBehavior.floating,
+                          shape: const StadiumBorder(),
+                        ),
                       );
                     }
-                    //
-                    if (!context.mounted) return;
-                    prov.clearControllers();
-                    Navigator.of(context).pop();
-                    //
-                    prov.fetchTrx(missionId: widget.mission.id!, queryString: '');
-                    //
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          widget.entreeToEdit != null
-                              ? "🎉✅🎊 • Entrée modifiée avec succès"
-                              : "🎉✅🎊 • Entrée ajouté avec succès",
-                          style: Theme.of(context).textTheme.bodyMedium!
-                              .copyWith(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSecondary,
-                          ),
-                        ),
-                        backgroundColor: Theme.of(
-                          context,
-                        ).colorScheme.secondary,
-                        behavior: SnackBarBehavior.floating,
-                        shape: const StadiumBorder(),
-                      ),
-                    );
                   },
                   splashColor: Theme.of(
                     context,

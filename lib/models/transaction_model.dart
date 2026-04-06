@@ -18,7 +18,6 @@ final Map<MissionType, String> missionTypeIcon = {
   MissionType.alimentation: "🍽️",
   MissionType.fournitures: "📦",
   MissionType.sante: "🏥",
-  MissionType.salaires: "💼",
   MissionType.autres: "📌",
 };
 
@@ -50,6 +49,7 @@ class Mission {
     this.isClosed = false,
     this.isAmountGoal = false,
     this.amountGoal,
+    required this.organizationId,
   });
 
   RecordModel? pbRecord;
@@ -66,6 +66,7 @@ class Mission {
   bool isAmountGoal;
   double? amountGoal;
   DateTime? createdAt;
+  final String organizationId;
 
   /// Mission fromRecord
   factory Mission.fromRecord(RecordModel record) {
@@ -78,14 +79,20 @@ class Mission {
       "expand.depenses(missionId)",
       [],
     );
-
+    //
+    final expandedUsers = record.getListValue<RecordModel>("expand.user");
+    final userName = expandedUsers.isNotEmpty
+        ? expandedUsers.first.getStringValue("name")
+        : "Inconnu";
+    //
     final entreeList = entreesData.map((r) => Entree.fromRecord(r)).toList();
     final depenseList = depensesData.map((r) => Depense.fromRecord(r)).toList();
     //
     return Mission(
       id: record.id,
       pbRecord: record,
-      user: record.getStringValue("user"),
+      organizationId: record.getStringValue("organizationId"),
+      user: userName,
       nom: record.getStringValue("nom"),
       capitaleInitial: record.getDoubleValue("capitaleInitial"),
       capitale: record.getDoubleValue("capitale"),
@@ -111,10 +118,12 @@ class Mission {
     "isClosed": isClosed,
     "isAmountGoal": isAmountGoal,
     "amountGoal": amountGoal,
+    "organizationId": organizationId,
   };
 
   Mission copyWith({
     String? id,
+    String? organizationId,
     String? nom,
     String? user,
     double? capitaleInitial,
@@ -130,6 +139,7 @@ class Mission {
   }) {
     return Mission(
       id: id ?? this.id,
+      organizationId: organizationId ?? this.organizationId,
       amountGoal: amountGoal ?? this.amountGoal,
       nom: nom ?? this.nom,
       user: user ?? this.user,

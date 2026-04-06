@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
+import 'package:track_depenses/helpers/error_helper.dart';
 import 'package:track_depenses/helpers/pocketBaseHelper/pocketbase_db.dart';
 import 'package:track_depenses/pages/closed_missions.dart';
 import 'package:track_depenses/pages/profile.dart';
@@ -34,10 +35,24 @@ class _HomeState extends State<Home> {
       userProv.setSelectedIndex(0);
       //
       final trxProv = Provider.of<TransactionProvider>(context, listen: false);
-      trxProv.fetchMissions(
-        isClosed: false,
-        searchQuery: searchMissionController.text,
-      );
+      trxProv
+          .fetchMissions(
+            isClosed: false,
+            searchQuery: searchMissionController.text,
+          )
+          .catchError((e) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text("❌ • ${parsePbError(e)}"),
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                  behavior: SnackBarBehavior.floating,
+                  shape: const StadiumBorder(),
+                ),
+              );
+            }
+            return <Mission>[];
+          });
       //
     });
   }
@@ -48,17 +63,22 @@ class _HomeState extends State<Home> {
     }
 
     _searchDebounce = Timer(const Duration(milliseconds: 400), () {
-      if (value.isEmpty) {
-        context.read<TransactionProvider>().fetchMissions(
-          isClosed: false,
-          searchQuery: '',
-        );
-      } else {
-        context.read<TransactionProvider>().fetchMissions(
-          isClosed: false,
-          searchQuery: value,
-        );
-      }
+      context
+          .read<TransactionProvider>()
+          .fetchMissions(isClosed: false, searchQuery: value)
+          .catchError((e) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text("❌ • ${parsePbError(e)}"),
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                  behavior: SnackBarBehavior.floating,
+                  shape: const StadiumBorder(),
+                ),
+              );
+            }
+            return <Mission>[];
+          });
     });
   }
 
@@ -164,148 +184,159 @@ class _HomeState extends State<Home> {
           ),
 
           /// Body content here
-          body: Stack(
-            children: [
-              Column(
-                children: [
-                  // Search bar for history
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: SearchBar(
-                      controller: searchMissionController,
-                      onChanged: _onSearchChanged,
-                      elevation: const WidgetStatePropertyAll(0),
-                      onTapOutside: (pointer) {
-                        FocusManager.instance.primaryFocus?.unfocus();
-                      },
-                      leading: Icon(
-                        CupertinoIcons.search,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                      padding: const WidgetStatePropertyAll(
-                        EdgeInsets.only(left: 20),
-                      ),
-                      backgroundColor: WidgetStatePropertyAll(
-                        Theme.of(context).brightness == Brightness.dark
-                            ? Colors.black.withValues(alpha: 0.5)
-                            : Colors.grey.shade100,
-                      ),
-                      trailing: [
-                        IconButton(
-                          onPressed: () {
-                            searchMissionController.clear();
-                            _onSearchChanged('');
-                          },
-                          icon: Icon(
-                            CupertinoIcons.multiply,
-                            color: Colors.grey.shade300,
-                          ),
-                          splashColor: Theme.of(
-                            context,
-                          ).colorScheme.primary.withValues(alpha: 0.15),
+          body: RefreshIndicator(
+            onRefresh: () async {
+              context.read<TransactionProvider>().fetchMissions(
+                isClosed: false,
+                searchQuery: '',
+              );
+            },
+            child: Stack(
+              children: [
+                Column(
+                  children: [
+                    // Search bar for history
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: SearchBar(
+                        controller: searchMissionController,
+                        onChanged: _onSearchChanged,
+                        elevation: const WidgetStatePropertyAll(0),
+                        onTapOutside: (pointer) {
+                          FocusManager.instance.primaryFocus?.unfocus();
+                        },
+                        leading: Icon(
+                          CupertinoIcons.search,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
-                      ],
-                      hintText: "Chercher une mission en cours",
-                      hintStyle: WidgetStatePropertyAll(
-                        Theme.of(context).textTheme.bodyLarge,
+                        padding: const WidgetStatePropertyAll(
+                          EdgeInsets.only(left: 20),
+                        ),
+                        backgroundColor: WidgetStatePropertyAll(
+                          Theme.of(context).brightness == Brightness.dark
+                              ? Colors.black.withValues(alpha: 0.5)
+                              : Colors.grey.shade100,
+                        ),
+                        trailing: [
+                          IconButton(
+                            onPressed: () {
+                              searchMissionController.clear();
+                              _onSearchChanged('');
+                            },
+                            icon: Icon(
+                              CupertinoIcons.multiply,
+                              color: Colors.grey.shade300,
+                            ),
+                            splashColor: Theme.of(
+                              context,
+                            ).colorScheme.primary.withValues(alpha: 0.15),
+                          ),
+                        ],
+                        hintText: "Chercher une mission en cours",
+                        hintStyle: WidgetStatePropertyAll(
+                          Theme.of(context).textTheme.bodyLarge,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
+                    const SizedBox(height: 8),
 
-                  /// Tab content
-                  Expanded(
-                    child: trxProv.isLoading
-                        ? const Center(
-                            child: CircularProgressIndicator.adaptive(),
-                          )
-                        : MissionsListView(
-                            emptyState: _buildEmptyState(context),
-                            title: "Mes missions en cours",
-                            missions: trxProv.missions,
-                          ),
-                  ),
-                ],
-              ),
+                    /// Tab content
+                    Expanded(
+                      child: trxProv.isLoading
+                          ? const Center(
+                              child: CircularProgressIndicator.adaptive(),
+                            )
+                          : MissionsListView(
+                              emptyState: _buildEmptyState(context),
+                              title: "Mes missions en cours",
+                              missions: trxProv.missions,
+                            ),
+                    ),
+                  ],
+                ),
 
-              /// Bottom navigation bar
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Container(
-                  margin: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Theme.of(context).colorScheme.onSurface
-                        : Theme.of(context).colorScheme.primary,
-                    borderRadius: BorderRadius.circular(90),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white.withValues(alpha: 0.1)
-                            : Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 20,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: List.generate(prov.icons.length, (i) {
-                      final icon = prov.icons[i];
-                      bool isSelected = i == prov.selectedIndex;
-                      return GestureDetector(
-                        onTap: () {
-                          if (i == prov.selectedIndex) return;
-                          prov.selectedIndex = i;
-                          switch (i) {
-                            case 0:
-                              break;
-                            case 1:
-                              prov.navigateWithFade(
-                                context,
-                                const ClosedMissions(),
-                              );
-                              break;
-                            case 2:
-                              prov.navigateWithFade(context, const Profile());
-                              break;
-                          }
-                        },
-                        child: Container(
-                          margin: i == 2
-                              ? null
-                              : const EdgeInsets.only(right: 8),
-                          height: 44,
-                          width: 44,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(90),
-                            color: isSelected
-                                ? Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? Theme.of(context).colorScheme.primary
-                                      : Theme.of(context).colorScheme.surface
-                                : Theme.of(context).brightness ==
-                                      Brightness.dark
-                                ? Theme.of(context).colorScheme.onSurface
-                                : Theme.of(context).colorScheme.primary,
-                          ),
-                          child: Icon(
-                            icon,
-                            color: isSelected
-                                ? Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? Colors.white
-                                      : Theme.of(context).colorScheme.primary
-                                : Theme.of(context).colorScheme.surface,
-                          ),
+                /// Bottom navigation bar
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Container(
+                    margin: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Theme.of(context).colorScheme.onSurface
+                          : Theme.of(context).colorScheme.primary,
+                      borderRadius: BorderRadius.circular(90),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white.withValues(alpha: 0.1)
+                              : Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 20,
+                          offset: const Offset(0, 5),
                         ),
-                      );
-                    }),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: List.generate(prov.icons.length, (i) {
+                        final icon = prov.icons[i];
+                        bool isSelected = i == prov.selectedIndex;
+                        return GestureDetector(
+                          onTap: () {
+                            if (i == prov.selectedIndex) return;
+                            //
+                            if(trxProv.isLoading) return;
+                            //
+                            prov.selectedIndex = i;
+                            switch (i) {
+                              case 0:
+                                break;
+                              case 1:
+                                prov.navigateWithFade(
+                                  context,
+                                  const ClosedMissions(),
+                                );
+                                break;
+                              case 2:
+                                prov.navigateWithFade(context, const Profile());
+                                break;
+                            }
+                          },
+                          child: Container(
+                            margin: i == 2
+                                ? null
+                                : const EdgeInsets.only(right: 8),
+                            height: 44,
+                            width: 44,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(90),
+                              color: isSelected
+                                  ? Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Theme.of(context).colorScheme.surface
+                                  : Theme.of(context).brightness ==
+                                        Brightness.dark
+                                  ? Theme.of(context).colorScheme.onSurface
+                                  : Theme.of(context).colorScheme.primary,
+                            ),
+                            child: Icon(
+                              icon,
+                              color: isSelected
+                                  ? Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.white
+                                        : Theme.of(context).colorScheme.primary
+                                  : Theme.of(context).colorScheme.surface,
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
