@@ -112,7 +112,7 @@ class _LoginWebState extends State<LoginWeb> {
                                 right: 50,
                                 bottom: 0.0,
                                 child: SizedBox(
-                                  height: 400,
+                                  height: 380,
                                   child: Image.asset(
                                     'assets/woman-agent-image.png',
                                   ),
