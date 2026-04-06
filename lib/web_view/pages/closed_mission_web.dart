@@ -252,7 +252,7 @@ class _ClosedMissionWebState extends State<ClosedMissionWeb> {
 
             final beforeTwoWeeks = DateTime.now().add(const Duration(days: 14));
 
-            final alertDate = beforeTwoWeeks.isBefore(subsUntil);
+            final alertDate = subsUntil.isBefore(beforeTwoWeeks);
 
             //
             return Row(
