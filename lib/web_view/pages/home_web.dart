@@ -20,8 +20,8 @@ class _HomeWebState extends State<HomeWeb> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<HomeWebProvider>().initDashboard();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await context.read<HomeWebProvider>().initDashboard();
     });
   }
 

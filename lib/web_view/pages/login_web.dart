@@ -54,19 +54,35 @@ class _LoginWebState extends State<LoginWeb> {
                           child: Stack(
                             fit: StackFit.expand,
                             children: [
+                              Positioned(
+                                top: 40,
+                                left: 40,
+                                child: SizedBox(
+                                  height: 100,
+                                  child: Image.asset('assets/logo-td-ob.png'),
+                                ),
+                              ),
                               // texts
                               Padding(
-                                padding: const EdgeInsets.all(30.0),
+                                padding: const EdgeInsets.all(40.0),
                                 child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.max,
                                   children: [
+                                    //
+                                    const SizedBox(height: 30),
                                     SizedBox(
-                                      height: 70,
+                                      height: 300,
                                       child: Image.asset(
-                                        'assets/logo-td-ob.png',
+                                        'assets/login-signup-image.png',
                                       ),
                                     ),
+                                    const SizedBox(height: 20),
+
+                                    //
                                     Text.rich(
+                                      textAlign: TextAlign.center,
                                       TextSpan(
                                         text:
                                             "Un moyen simple de \ngérer votre",
@@ -81,7 +97,7 @@ class _LoginWebState extends State<LoginWeb> {
                                                   color: theme
                                                       .colorScheme
                                                       .secondary,
-                                                  fontSize: 40,
+                                                  fontSize: 36,
                                                 ),
                                           ),
                                         ],
@@ -90,32 +106,25 @@ class _LoginWebState extends State<LoginWeb> {
                                           .copyWith(
                                             fontWeight: FontWeight.w900,
                                             color: Colors.white,
-                                            fontSize: 40,
+                                            fontSize: 36,
                                           ),
                                     ),
                                     const SizedBox(height: 12),
                                     Text(
-                                      "Suivez les dépenses de vos agents en\ntemps réel, centralisez les justificatifs\net transformez vos données en\nrapports stratégiques\ninstantanés.",
-                                      style: theme.textTheme.bodyMedium!
+                                      "Suivez les dépenses de vos agents en temps réel, centralisez les justificatifs et transformez vos données en rapports stratégiques instantanés.",
+                                      textAlign: TextAlign.center,
+                                      softWrap: true,
+                                      style: theme.textTheme.bodySmall!
                                           .copyWith(
-                                            color: Colors.white,
-                                            fontSize: 18,
+                                            color: Colors.white.withValues(
+                                              alpha: 0.85,
+                                            ),
+                                            fontWeight: FontWeight.w400,
+                                            fontSize: 16,
                                             height: 1.5,
                                           ),
                                     ),
                                   ],
-                                ),
-                              ),
-                              // image
-                              // image
-                              Positioned(
-                                right: 50,
-                                bottom: 0.0,
-                                child: SizedBox(
-                                  height: 380,
-                                  child: Image.asset(
-                                    'assets/woman-agent-image.png',
-                                  ),
                                 ),
                               ),
                             ],
@@ -204,7 +213,7 @@ class _LoginWebState extends State<LoginWeb> {
                                     const SizedBox(height: 8),
                                     TextFormFieldWidget(
                                       controller: prov.passwordWebController,
-                                      hintText: "••••••••",
+                                      hintText: "Votre mot de passe",
                                       iconData: CupertinoIcons.number,
                                       isPassword: true,
                                       validator: (value) {

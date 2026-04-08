@@ -61,12 +61,11 @@ class MissionContainerWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         child: Container(
           width: double.infinity,
-          margin: const EdgeInsets.only(bottom: kIsWeb ? 0 : 16),
           padding: const EdgeInsets.all(4),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            mainAxisSize: MainAxisSize.max,
+            mainAxisSize: MainAxisSize.min,
             children: [
               /// Mission name, date and mission amount goal
               Padding(
@@ -129,7 +128,9 @@ class MissionContainerWidget extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.fromLTRB(8, 6, 12, 6),
                     decoration: BoxDecoration(
-                      color: isClosed ? CupertinoColors.systemRed : Colors.green,
+                      color: isClosed
+                          ? CupertinoColors.systemRed
+                          : Colors.green,
                       borderRadius: BorderRadius.circular(80),
                     ),
                     child: Row(
@@ -145,10 +146,11 @@ class MissionContainerWidget extends StatelessWidget {
                         const SizedBox(width: 8),
                         Text(
                           isClosed ? "Clôturée" : "En cours",
-                          style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: Theme.of(context).textTheme.bodyMedium!
+                              .copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
                         ),
                       ],
                     ),
@@ -176,12 +178,13 @@ class MissionContainerWidget extends StatelessWidget {
                         const SizedBox(width: 8),
                         Text(
                           formattedCurrency.format(montantObjectif ?? 0.0),
-                          style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                            color: montantObjectif == 0
-                                ? Colors.white
-                                : Theme.of(context).colorScheme.onSecondary,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: Theme.of(context).textTheme.bodyMedium!
+                              .copyWith(
+                                color: montantObjectif == 0
+                                    ? Colors.white
+                                    : Theme.of(context).colorScheme.onSecondary,
+                                fontWeight: FontWeight.bold,
+                              ),
                         ),
                       ],
                     ),
@@ -192,7 +195,10 @@ class MissionContainerWidget extends StatelessWidget {
 
               /// Capitale initial et solde actuel
               Container(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 16,
+                ),
                 decoration: BoxDecoration(
                   color: Theme.of(context).brightness == Brightness.dark
                       ? Colors.white.withValues(alpha: 0.1)
@@ -213,13 +219,16 @@ class MissionContainerWidget extends StatelessWidget {
                           formattedCurrency.format(capitalInitial),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                            fontSize: 18,
-                            color: Theme.of(context).brightness == Brightness.dark
-                                ? Colors.white
-                                : Colors.black,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: Theme.of(context).textTheme.titleLarge!
+                              .copyWith(
+                                fontSize: 18,
+                                color:
+                                    Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.white
+                                    : Colors.black,
+                                fontWeight: FontWeight.w600,
+                              ),
                         ),
                       ],
                     ),
@@ -262,48 +271,45 @@ class MissionContainerWidget extends StatelessWidget {
                     ),
 
                     /// Agent de mission
-                    if (kIsWeb && missionUser != null)
-                      Column(
+                    if (kIsWeb && missionUser != null) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const SizedBox(height: 8),
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Row(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 16,
-                                    backgroundColor: Theme.of(
-                                      context,
-                                    ).colorScheme.primary,
-                                    child: const HugeIcon(
-                                      icon: HugeIcons.strokeRoundedUser03,
-                                      size: 18,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    "Agent :",
-                                    style: Theme.of(context).textTheme.bodyLarge,
-                                  ),
-                                ],
+                              CircleAvatar(
+                                radius: 16,
+                                backgroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.primary,
+                                child: const HugeIcon(
+                                  icon: HugeIcons.strokeRoundedUser03,
+                                  size: 18,
+                                  color: Colors.white,
+                                ),
                               ),
-                              const SizedBox(width: 10),
+                              const SizedBox(width: 6),
                               Text(
-                                missionUser ?? "Agent inconnu",
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.titleLarge!
-                                    .copyWith(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                                "Agent :",
+                                style: Theme.of(context).textTheme.bodyLarge,
                               ),
                             ],
                           ),
+                          const SizedBox(width: 10),
+                          Text(
+                            missionUser ?? "Agent inconnu",
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleLarge!
+                                .copyWith(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
                         ],
                       ),
+                    ],
                   ],
                 ),
               ),

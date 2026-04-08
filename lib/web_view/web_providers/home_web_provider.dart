@@ -80,7 +80,7 @@ class HomeWebProvider with ChangeNotifier {
       final currentUser = pb.authStore.record;
       if (currentUser == null) return;
       //
-      final records = await pb
+      final countResults = await pb
           .collection("users")
           .getList(
             page: 1,
@@ -88,10 +88,19 @@ class HomeWebProvider with ChangeNotifier {
             filter:
                 'role = "agent" && organizationId = "${currentUser.getStringValue('organizationId')}"',
           );
-      _activeAgents = records.totalItems;
+      _activeAgents = countResults.totalItems;
+
+      ///
+      final records = await pb
+          .collection("users")
+          .getFullList(
+            filter:
+                'role = "agent" && organizationId = "${currentUser.getStringValue('organizationId')}"',
+            sort: '-created',
+          );
       //
       _agentList.clear();
-      _agentList.addAll(records.items.map(UserModel.fromRecord));
+      _agentList.addAll(records.map(UserModel.fromRecord));
       //
       notifyListeners();
     } catch (e) {
@@ -139,12 +148,15 @@ class HomeWebProvider with ChangeNotifier {
   Future<List<Mission>> fetchMissionsWeb({
     required bool isClosed,
     required String searchQuery,
+    bool showLoading = true,
   }) async {
     final currentUser = pb.authStore.record;
     if (currentUser == null) return [];
     //
-    _isLoading = true;
-    notifyListeners();
+    if (showLoading) {
+      _isLoading = true;
+      notifyListeners();
+    }
     try {
       //
       final expand = "depenses(missionId),entrees(missionId),user";
@@ -173,9 +185,19 @@ class HomeWebProvider with ChangeNotifier {
       dev.log("Error while fetching missions: $e");
       rethrow;
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (showLoading) {
+        _isLoading = false;
+        notifyListeners();
+      }
     }
+  }
+
+  double get totalBudget {
+    double total = 0;
+    for(var mission in _missions){
+      total += mission.capitale;
+    }
+    return total;
   }
 
   double get totalConsumedBudget {
@@ -221,8 +243,8 @@ class HomeWebProvider with ChangeNotifier {
       await Future.wait([
         getAllMissionsByOrganization(),
         getAllActiveAgents(),
-        fetchMissionsWeb(isClosed: false, searchQuery: ''),
-        fetchMissionsWeb(isClosed: true, searchQuery: ''),
+        fetchMissionsWeb(isClosed: false, searchQuery: '', showLoading: false),
+        fetchMissionsWeb(isClosed: true, searchQuery: '', showLoading: false),
       ]);
 
       _isInitialized = true;
@@ -249,6 +271,112 @@ class HomeWebProvider with ChangeNotifier {
   }
 
   ///
+
+  Future<void> resetUserDeviceIdDialog(BuildContext context) async {
+    //
+    final confirm = await showDialog<bool>(
+      useSafeArea: true,
+      context: context,
+      fullscreenDialog: true,
+      builder: (context) => AlertDialog(
+        constraints: const BoxConstraints(maxWidth: 500),
+        alignment: Alignment.center,
+        shape: ContinuousRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 30,
+          vertical: 30,
+        ),
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xff11181C)
+            : Colors.white,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const HugeIcon(
+              icon: HugeIcons.strokeRoundedAccountSetting02,
+              size: 48,
+              color: Colors.red,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              "Êtes-vous sûr de vouloir réinitialiser l'appareil de l'agent ?",
+              softWrap: true,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+          ],
+        ),
+        actions: [
+          MaterialButton(
+            onPressed: () => Navigator.pop(context, false),
+            minWidth: 200,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(80),
+              side: BorderSide(width: 1, color: Colors.grey.shade200),
+            ),
+            elevation: 0,
+            height: 50,
+            color: Theme.of(context).colorScheme.surface,
+            child: const Text("Annuler", style: TextStyle(color: Colors.red)),
+          ),
+          MaterialButton(
+            onPressed: () => Navigator.pop(context, true),
+            minWidth: 200,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(80),
+            ),
+            elevation: 0,
+            height: 50,
+            color: Theme.of(context).colorScheme.primary,
+            child: Text(
+              "Oui",
+              style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
+            ),
+          ),
+        ],
+      ),
+    );
+    //
+    if (confirm == true) {
+      if (!context.mounted) return;
+      if (_selectedAgent == null) return;
+      //
+      try {
+        //
+        await PocketBaseDb.instance.pb
+            .collection("users")
+            .update(_selectedAgent!.userRecord!.id, body: {"deviceId": ""});
+        //
+        if (!context.mounted) return;
+        //
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            width: 400,
+            content: const Text("📱️ • Réinitialisation réussie"),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            behavior: SnackBarBehavior.floating,
+            shape: const StadiumBorder(),
+          ),
+        );
+        //
+        await getAllActiveAgents();
+      } catch (e) {
+        log(e.toString());
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            width: 400,
+            content: Text("❌ • Erreur lors de la réinitialisation"),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: StadiumBorder(),
+          ),
+        );
+      }
+    }
+  }
 
   @override
   void dispose() {

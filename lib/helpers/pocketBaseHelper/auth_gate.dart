@@ -82,12 +82,12 @@ class _AuthGateState extends State<AuthGate> {
       }
     });
     //
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<UserProvider>().checkSubscription();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await context.read<UserProvider>().checkSubscription();
+      await _checkAuth();
     });
     //
     _initDeepLink();
-    _checkAuth();
   }
 
   void _initDeepLink() {

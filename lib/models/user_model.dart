@@ -7,6 +7,7 @@ class UserModel {
     this.organizationId,
     this.name,
     this.userRole,
+    this.userRecord,
   });
 
   final String email;
@@ -14,6 +15,8 @@ class UserModel {
   final String? name;
   final String? userRole;
   final String? organizationId;
+
+  RecordModel? userRecord;
 
   Map<String, dynamic> toMap() => {
     "email": email,
@@ -30,6 +33,7 @@ class UserModel {
     final organizationId = record.getStringValue("organizationId");
 
     return UserModel(
+      userRecord: record,
       email: email,
       userRole: userRole,
       name: name,

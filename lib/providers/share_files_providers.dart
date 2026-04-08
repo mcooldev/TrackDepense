@@ -1,6 +1,5 @@
 import 'dart:developer';
 import 'dart:io' show File;
-import 'dart:js_interop';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -18,7 +17,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:track_depenses/helpers/pocketBaseHelper/pocketbase_db.dart';
 import 'package:track_depenses/models/transaction_model.dart';
-import 'package:web/web.dart' as web;
+import 'package:universal_html/html.dart' as html;
 
 class ShareFilesProvider with ChangeNotifier {
   /// Take screenshot of the current screen and share it as an image file.
@@ -513,21 +512,17 @@ class ShareFilesProvider with ChangeNotifier {
       _pdfStep = 4;
       notifyListeners();
       //
-      final blob = web.Blob(
-        [pdfBytes.buffer.toJS].toJS,
-        web.BlobPropertyBag(type: 'application/pdf'),
-      );
-      final url = web.URL.createObjectURL(blob);
+      final blob = html.Blob([pdfBytes], 'application/pdf');
+      final url = html.Url.createObjectUrlFromBlob(blob);
 
-      final anchor = web.document.createElement('a') as web.HTMLAnchorElement
-        ..href = url
+      final anchor = html.AnchorElement(href: url)
         ..setAttribute('download', 'Rapport_${mission.nom}.pdf');
       //
-      web.document.body!.append(anchor);
+      html.document.body!.append(anchor);
       anchor.click();
-      web.document.body!.removeChild(anchor);
+      html.document.body!.children.remove(anchor);
       //
-      web.URL.revokeObjectURL(url);
+      html.Url.revokeObjectUrl(url);
       log("✅ Téléchargement lancé côté Admin");
     } catch (e) {
       log("❌ Erreur téléchargement : $e");
@@ -562,18 +557,10 @@ class ShareFilesProvider with ChangeNotifier {
       final fileName = 'Rapport_${sanitizedMissionName}_$formattedNow.pdf';
       //
       final XFile xfile;
-      if (kIsWeb) {
-        xfile = XFile.fromData(
-          pdfBytes,
-          mimeType: 'application/pdf',
-          name: fileName,
-        );
-      } else {
-        final directory = await getTemporaryDirectory();
-        final path = "${directory.path}/$fileName";
-        await File(path).writeAsBytes(pdfBytes);
-        xfile = XFile(path);
-      }
+      final directory = await getTemporaryDirectory();
+      final path = "${directory.path}/$fileName";
+      await File(path).writeAsBytes(pdfBytes);
+      xfile = XFile(path);
       //
       await SharePlus.instance.share(
         ShareParams(

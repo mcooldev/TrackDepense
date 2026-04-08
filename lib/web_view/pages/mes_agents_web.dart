@@ -123,7 +123,8 @@ class _MesAgentsWebState extends State<MesAgentsWeb> {
                                           // Name symbol
                                           CircleAvatar(
                                             radius: 32,
-                                            backgroundColor: theme.colorScheme.primary,
+                                            backgroundColor:
+                                                theme.colorScheme.primary,
                                             child: Text(
                                               prov.selectedAgent?.name
                                                       ?.split(" ")[0]
@@ -184,6 +185,45 @@ class _MesAgentsWebState extends State<MesAgentsWeb> {
                                             ),
                                           ),
                                         ],
+                                      ),
+                                      const SizedBox(height: 12),
+                                      MaterialButton(
+                                        onPressed: () async {
+                                          await prov.resetUserDeviceIdDialog(
+                                            context,
+                                          );
+                                        },
+                                        splashColor: Theme.of(context)
+                                            .colorScheme
+                                            .primary
+                                            .withValues(alpha: 0.15),
+                                        color: Colors.white,
+                                        elevation: 0,
+                                        height: 52,
+                                        minWidth: double.infinity,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            90,
+                                          ),
+                                          side: BorderSide(
+                                            width: 1,
+                                            color: Colors.grey.shade200,
+                                          ),
+                                        ),
+                                        child: prov.isLoading
+                                            ? const CircularProgressIndicator.adaptive(
+                                                backgroundColor: Colors.white,
+                                              )
+                                            : Text(
+                                                "Réinitialiser l'appareil de l'agent",
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .titleMedium!
+                                                    .copyWith(
+                                                      fontSize: 16,
+                                                      color: Colors.red,
+                                                    ),
+                                              ),
                                       ),
                                       const SizedBox(height: 12),
                                       Divider(

@@ -1,5 +1,8 @@
 import 'dart:developer';
+import 'dart:io';
 
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:track_depenses/helpers/error_helper.dart';
 import 'package:track_depenses/helpers/pocketBaseHelper/pocketbase_db.dart';
@@ -58,11 +61,60 @@ class LoginProvider extends AuthenticationProvider {
         password: passwordController.text.trim(),
       );
       await pb.loginUser(newUserToLogin);
-      //
+
+      final currentUser = pb.pb.authStore.record;
+      if (currentUser == null) {
+        _isLoading = false;
+        notifyListeners();
+        return;
+      }
+
+      ///
+      if (!kIsWeb) {
+        String? deviceId;
+        if (Platform.isAndroid) {
+          final deviceInfo = await deviceInfoPlugin.androidInfo;
+          deviceId = deviceInfo.id;
+        } else if (Platform.isIOS) {
+          final deviceInfo = await deviceInfoPlugin.iosInfo;
+          deviceId = deviceInfo.identifierForVendor;
+        }
+
+        ///
+        String storedDeviceId = currentUser.getStringValue("deviceId");
+        if (storedDeviceId.isEmpty) {
+          await pb.pb
+              .collection('users')
+              .update(currentUser.id, body: {"deviceId": deviceId});
+        } else if (storedDeviceId != deviceId) {
+          pb.pb.authStore.clear();
+          _isLoading = false;
+          notifyListeners();
+          //
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                "❌ • Vous êtes déjà connecté sur un autre appareil",
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium!.copyWith(color: Colors.white),
+              ),
+              backgroundColor: Theme.of(context).colorScheme.error,
+              behavior: SnackBarBehavior.floating,
+              shape: const StadiumBorder(),
+            ),
+          );
+          return;
+        }
+      }
+
+      ///
       emailController.clear();
       passwordController.clear();
       notifyListeners();
-      //
+
+      ///
       if (!context.mounted) return;
       Navigator.pushReplacementNamed(context, "/authGate");
       ScaffoldMessenger.of(context).showSnackBar(
@@ -80,8 +132,6 @@ class LoginProvider extends AuthenticationProvider {
       );
     } catch (e) {
       log(e.toString());
-      _isLoading = false;
-      notifyListeners();
       //
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -97,8 +147,15 @@ class LoginProvider extends AuthenticationProvider {
           shape: const StadiumBorder(),
         ),
       );
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
+
+  //
+
+  static final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
 }
 
 /// Signup provider

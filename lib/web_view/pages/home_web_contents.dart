@@ -98,6 +98,7 @@ class _HomeWebContentsState extends State<HomeWebContents> {
                       // preview card data
                       Row(
                         children: [
+                          // total missions
                           BuildStatCard(
                             cardTitle: "Total missions",
                             cardData: prov.missions.length.toString().padLeft(
@@ -106,6 +107,7 @@ class _HomeWebContentsState extends State<HomeWebContents> {
                             ),
                           ),
                           const SizedBox(width: 12),
+                          // missions actives
                           BuildStatCard(
                             cardTitle: "Missions actives/en cours",
                             cardData: prov.missions
@@ -115,14 +117,15 @@ class _HomeWebContentsState extends State<HomeWebContents> {
                                 .padLeft(2, "0"),
                           ),
                           const SizedBox(width: 12),
+                          // total budgets
                           BuildStatCard(
-                            cardTitle: "Agents actifs",
-                            cardData: prov.activeAgents.toString().padLeft(
-                              2,
-                              "0",
+                            cardTitle: "Budget total",
+                            cardData: formatter.format(
+                              prov.totalBudget,
                             ),
                           ),
                           const SizedBox(width: 12),
+                          // total budgets consommés
                           BuildStatCard(
                             cardTitle: "Budget total consommé",
                             cardData: formatter.format(

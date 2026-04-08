@@ -78,23 +78,27 @@ class _MissionsListViewState extends State<MissionsListView> {
                       final mission = widget.missions[i];
 
                       //
-                      return MissionContainerWidget(
-                        onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  MissionDetail(mission: mission),
-                            ),
-                          );
-                        },
-                        missionIcon: mission.nom.substring(0, 1),
-                        montantObjectif: mission.amountGoal,
-                        missionName: mission.nom,
-                        dateDebut: mission.dateDebut.toString(),
-                        dateFin: mission.dateFin.toString(),
-                        capitale: mission.capitale,
-                        capitalInitial: mission.capitaleInitial,
-                        isClosed: mission.isClosed,
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: MissionContainerWidget(
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    MissionDetail(mission: mission),
+                              ),
+                            );
+                          },
+                          missionIcon: mission.nom.substring(0, 1),
+                          montantObjectif: mission.amountGoal,
+                          missionName: mission.nom,
+                          dateDebut: mission.dateDebut.toString(),
+                          dateFin: mission.dateFin.toString(),
+                          capitale: mission.capitale,
+                          capitalInitial: mission.capitaleInitial,
+                          isClosed: mission.isClosed,
+                          missionUser: null,
+                        ),
                       );
                     },
                   ),
