@@ -110,7 +110,7 @@ class UserProvider with ChangeNotifier {
     } on ClientException catch (e) {
       if (e.statusCode == 403) {
         log("Accès refusé — règles PocketBase à vérifier");
-        return; // ✅ ne change pas _isOrgStillActive
+        return;
       }
       if (e.statusCode == 404) {
         log("Organisation introuvable");
@@ -123,6 +123,32 @@ class UserProvider with ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<void>? _authChekFuture;
+
+  Future<void> checkAuth() async {
+    _authChekFuture ??= _doChekAuth();
+    return _authChekFuture;
+  }
+
+  Future<void> _doChekAuth() async {
+    try {
+      ///
+      await checkSubscription();
+
+      ///
+      if (pb.authStore.token.isNotEmpty && pb.authStore.isValid) {
+        log("Tentative de refresh du token...");
+        await pb.collection('users').authRefresh();
+        log("Token refresh réussi !");
+      } else {
+        log("⚠️ Pas de token valide à refresh");
+      }
+    } catch (e) {
+      log(e.toString());
+      pb.authStore.clear();
     }
   }
 

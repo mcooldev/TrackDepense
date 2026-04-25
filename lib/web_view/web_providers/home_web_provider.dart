@@ -194,7 +194,7 @@ class HomeWebProvider with ChangeNotifier {
 
   double get totalBudget {
     double total = 0;
-    for(var mission in _missions){
+    for (var mission in _missions) {
       total += mission.capitale;
     }
     return total;

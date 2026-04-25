@@ -355,7 +355,7 @@ class _MissionDetailWebState extends State<MissionDetailWeb> {
                     ? const Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Center(child: Text("Aucune opération sélectionné")),
+                          Center(child: Text("Aucune opération sélectionnée")),
                         ],
                       )
                     : Column(

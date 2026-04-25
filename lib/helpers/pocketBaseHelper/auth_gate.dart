@@ -1,7 +1,5 @@
 import 'dart:async';
-import 'dart:developer';
 
-import 'package:app_links/app_links.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -26,21 +24,27 @@ class AuthGate extends StatefulWidget {
 
 class _AuthGateState extends State<AuthGate> {
   ///
-  final pb = PocketBaseDb.instance;
-  bool _isCheckingAuth = true;
-  StreamSubscription? _linkSubscription;
-  final _appLinks = AppLinks();
+  final pb = PocketBaseDb.instance.pb;
 
   //
   StreamSubscription<List<ConnectivityResult>>? connectivityResult;
   bool isFirstTimeConnectivityCheck = true;
+
+  Future<void>? authFuture;
 
   //
 
   @override
   void initState() {
     super.initState();
-    //
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      authFuture = Provider.of<UserProvider>(
+        context,
+        listen: false,
+      ).checkAuth();
+    });
+
+    ///
     connectivityResult = Connectivity().onConnectivityChanged.listen((
       List<ConnectivityResult> result,
     ) {
@@ -81,59 +85,10 @@ class _AuthGateState extends State<AuthGate> {
         );
       }
     });
-    //
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await context.read<UserProvider>().checkSubscription();
-      await _checkAuth();
-    });
-    //
-    _initDeepLink();
-  }
-
-  void _initDeepLink() {
-    _linkSubscription = _appLinks.uriLinkStream.listen((uri) async {
-      if (uri.path.contains('oauth2-redirect')) {
-        log("Lien de retour détecté : $uri");
-        //
-        if (uri.queryParameters.containsKey("code")) {
-          log("✅ Code OAuth reçu, vérification de l'authentification...");
-          await Future.delayed(const Duration(milliseconds: 800));
-          //
-          await _checkAuth();
-          //
-        } else {
-          log("❌ Pas de code OAuth - authentification échouée");
-          if (mounted) setState(() => _isCheckingAuth = false);
-        }
-      }
-    });
-  }
-
-  Future<void> _checkAuth() async {
-    //
-    setState(() => _isCheckingAuth = true);
-    //
-    try {
-      if (pb.pb.authStore.token.isNotEmpty && pb.pb.authStore.isValid) {
-        log("Tentative de refresh du token...");
-        await pb.pb.collection('users').authRefresh();
-        log("Token refresh réussi !");
-      } else {
-        log("⚠️ Pas de token valide à refresh");
-      }
-    } catch (e) {
-      log(e.toString());
-      pb.pb.authStore.clear();
-    } finally {
-      if (mounted) {
-        setState(() => _isCheckingAuth = false);
-      }
-    }
   }
 
   @override
   void dispose() {
-    _linkSubscription?.cancel();
     connectivityResult?.cancel();
     super.dispose();
   }
@@ -141,54 +96,75 @@ class _AuthGateState extends State<AuthGate> {
   ///
   @override
   Widget build(BuildContext context) {
-    final obProv = context.watch<OnBoardingProvider>();
-    final userProv = Provider.of<UserProvider>(context);
-    final user = pb.pb.authStore.record;
     //
-    if (_isCheckingAuth || userProv.isLoading) {
-      return const Scaffold(
-        body: Center(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(width: 8),
-              Text("Vérification de l'authentification..."),
-            ],
-          ),
-        ),
-      );
-    }
-    if (user == null) {
-      if (kIsWeb) return const LoginWeb();
-      return const Login();
-    }
-    //
-    if (!userProv.isOrgStillActive) {
-      return const SupportPage();
-    }
-    //
-    if (!pb.pb.authStore.isValid) {
-      if (kIsWeb) {
-        return const LoginWeb();
-      }
-      return const Login();
-    }
-    //
-    if (obProv.isFirstTime) {
-      obProv.setFirstTimeComplete();
-    }
-    // web view
-    if (kIsWeb) {
-      final userRole = user.getStringValue('role');
-      if (userRole.contains("admin")) return const HomeWeb();
-      return buildScaffoldErrorPage(context);
-    }
+    return FutureBuilder(
+      future: authFuture,
+      builder: (context, snapshot) {
+        //
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(width: 8),
+                  Text("Vérification de l'authentification..."),
+                ],
+              ),
+            ),
+          );
+        }
 
-    // mobile view
-    final userRole = user.getStringValue('role');
-    if (userRole.contains("agent")) return const Home();
-    return buildScaffoldErrorPage(context);
+        ///
+
+        final obProv = context.read<OnBoardingProvider>();
+        final userProv = context.watch<UserProvider>();
+        final user = pb.authStore.record;
+        //
+        if (user == null || !pb.authStore.isValid) {
+          if (kIsWeb) return const LoginWeb();
+          return const Login();
+        }
+        //
+        if (userProv.isLoading) {
+          return const Scaffold(
+            body: Center(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(width: 8),
+                  Text("Vérification de l'abonnement..."),
+                ],
+              ),
+            ),
+          );
+        }
+        //
+        if (!userProv.isOrgStillActive) {
+          return const SupportPage();
+        }
+        //
+        if (obProv.isFirstTime) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            obProv.setFirstTimeComplete();
+          });
+        }
+
+        ///
+        final userRole = user.getStringValue('role');
+        // web view
+        if (kIsWeb) {
+          if (userRole.contains("admin")) return const HomeWeb();
+          return buildScaffoldErrorPage(context);
+        }
+
+        // mobile view
+        if (userRole.contains("agent")) return const Home();
+        return buildScaffoldErrorPage(context);
+      },
+    );
   }
 
   ///* EXTRACTED METHOD */

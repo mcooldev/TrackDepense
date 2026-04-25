@@ -45,7 +45,7 @@ dependencies:
   path_provider: ^2.1.5
   screenshot: ^3.0.0
   pdf: ^3.12.0
-  share_plus: ^12.0.2
+  share_plus: ^13.1.0
   pdfx: ^2.9.2
   rxdart: ^0.28.0
   pocketbase: ^0.23.2
@@ -55,9 +55,9 @@ dependencies:
   hugeicons: ^1.1.6
   flutter_image_compress: ^2.4.0
   app_links: ^7.0.0
-  connectivity_plus: ^7.1.0
+  connectivity_plus: ^7.1.1
   universal_html: ^2.3.0
-  device_info_plus: ^12.4.0
+  device_info_plus: ^13.1.0
 
 flutter_launcher_icons:
   image_path: "assets/icon/icon.png"
