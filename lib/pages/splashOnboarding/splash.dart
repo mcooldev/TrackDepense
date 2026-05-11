@@ -33,7 +33,7 @@ class _SplashState extends State<Splash> {
     try {
       await onBoardingProvider.checkIsFirstTime();
       //
-      await Future.delayed(const Duration(seconds: 3));
+      // await Future.delayed(const Duration(seconds: 3));
       //
       if (!context.mounted) return;
       if (onBoardingProvider.isFirstTime) {

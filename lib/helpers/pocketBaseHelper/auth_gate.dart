@@ -38,10 +38,7 @@ class _AuthGateState extends State<AuthGate> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      authFuture = Provider.of<UserProvider>(
-        context,
-        listen: false,
-      ).checkAuth();
+      authFuture = context.read<UserProvider>().checkAuth();
     });
 
     ///
@@ -57,6 +54,8 @@ class _AuthGateState extends State<AuthGate> {
       final isNotOnline =
           !result.contains(ConnectivityResult.mobile) &&
           !result.contains(ConnectivityResult.wifi);
+      //
+      if (!isNotOnline) return;
       //
       if (isNotOnline) {
         if (!mounted) return;

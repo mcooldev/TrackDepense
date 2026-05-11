@@ -42,7 +42,7 @@ class LoginWebProvider with ChangeNotifier {
       notifyListeners();
       //
       if (!context.mounted) return;
-      Navigator.pushReplacementNamed(context, '/authGate');
+      Navigator.pushNamed(context, '/authGate');
     } catch (e) {
       log(e.toString());
       if (context.mounted) {
