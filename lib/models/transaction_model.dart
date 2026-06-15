@@ -18,6 +18,7 @@ final Map<MissionType, String> missionTypeIcon = {
   MissionType.alimentation: "🍽️",
   MissionType.fournitures: "📦",
   MissionType.sante: "🏥",
+  MissionType.salaires: "💰",
   MissionType.autres: "📌",
 };
 

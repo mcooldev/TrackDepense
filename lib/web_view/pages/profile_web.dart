@@ -88,32 +88,35 @@ class _ProfileWebState extends State<ProfileWeb> {
                         child: Column(
                           children: [
                             // Reset password
-                            ListTile(
-                              onTap: () async {
-                                await resetProv.resetPasswordDialog(
-                                  context,
-                                  resetProv,
-                                );
-                              },
-                              hoverColor: Colors.grey.shade100,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              leading: Icon(
-                                CupertinoIcons.lock,
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
-                              title: Text(
-                                "Modifier mot de passe",
-                                style: Theme.of(context).textTheme.bodyLarge!
-                                    .copyWith(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurface,
-                                    ),
-                              ),
-                              trailing: const Icon(
-                                CupertinoIcons.chevron_forward,
+                            Material(
+                              color: Colors.transparent,
+                              child: ListTile(
+                                onTap: () async {
+                                  await resetProv.resetPasswordDialog(
+                                    context,
+                                    resetProv,
+                                  );
+                                },
+                                hoverColor: Colors.grey.shade100,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                leading: Icon(
+                                  CupertinoIcons.lock,
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                ),
+                                title: Text(
+                                  "Modifier mot de passe",
+                                  style: Theme.of(context).textTheme.bodyLarge!
+                                      .copyWith(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurface,
+                                      ),
+                                ),
+                                trailing: const Icon(
+                                  CupertinoIcons.chevron_forward,
+                                ),
                               ),
                             ),
                           ],

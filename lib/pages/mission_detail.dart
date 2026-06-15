@@ -747,152 +747,158 @@ class _MissionDetailState extends State<MissionDetail> {
                   ),
                 ],
               ),
-              child: ListTile(
-                onTap: () {
-                  if (op is Depense) {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => ExpenseDetail(
-                          trxMission: op,
-                          mission: currentMission,
-                          isEntree: false,
+              child: Material(
+                color: Colors.transparent,
+                child: ListTile(
+                  onTap: () {
+                    if (op is Depense) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => ExpenseDetail(
+                            trxMission: op,
+                            mission: currentMission,
+                            isEntree: false,
+                          ),
                         ),
-                      ),
-                    );
-                  }
+                      );
+                    }
+                    //
+                    if (op is Entree) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => ExpenseDetail(
+                            trxMission: op,
+                            mission: currentMission,
+                            isEntree: true,
+                          ),
+                        ),
+                      );
+                    }
+                  },
                   //
-                  if (op is Entree) {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => ExpenseDetail(
-                          trxMission: op,
-                          mission: currentMission,
-                          isEntree: true,
+                  leading: op is Entree
+                      ? Icon(
+                          CupertinoIcons.arrow_up_circle_fill,
+                          color: Theme.of(context).colorScheme.secondary,
+                          size: 32,
+                        )
+                      : Icon(
+                          CupertinoIcons.arrow_down_circle_fill,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 32,
                         ),
-                      ),
-                    );
-                  }
-                },
-                //
-                leading: op is Entree
-                    ? Icon(
-                        CupertinoIcons.arrow_up_circle_fill,
-                        color: Theme.of(context).colorScheme.secondary,
-                        size: 32,
-                      )
-                    : Icon(
-                        CupertinoIcons.arrow_down_circle_fill,
-                        color: Theme.of(context).colorScheme.primary,
-                        size: 32,
-                      ),
-                title: Text(
-                  op.description,
-                  style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white
-                        : Colors.black,
-                    fontWeight: FontWeight.w600,
+                  title: Text(
+                    op.description,
+                    style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : Colors.black,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-                subtitle: Text(
-                  op.createdAt != null
-                      ? formattedDate.format(op.createdAt)
-                      : "XX/XX/XXXX",
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-                trailing: op is Entree
-                    ? Text(
-                        "+${formatter.format(double.parse(op.montant.toString()))}",
-                        style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white
-                              : CupertinoColors.systemGreen,
-                          fontWeight: FontWeight.w600,
+                  subtitle: Text(
+                    op.createdAt != null
+                        ? formattedDate.format(op.createdAt)
+                        : "XX/XX/XXXX",
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                  trailing: op is Entree
+                      ? Text(
+                          "+${formatter.format(double.parse(op.montant.toString()))}",
+                          style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : CupertinoColors.systemGreen,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        )
+                      : Text(
+                          "-${formatter.format(double.parse(op.montant.toString()))}",
+                          style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : Colors.red,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      )
-                    : Text(
-                        "-${formatter.format(double.parse(op.montant.toString()))}",
-                        style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white
-                              : Colors.red,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                ),
               ),
             );
           }
           // If mission is closed
-          return ListTile(
-            onTap: () {
-              if (op is Depense) {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => ExpenseDetail(
-                      trxMission: op,
-                      mission: currentMission,
-                      isEntree: false,
+          return Material(
+            color: Colors.transparent,
+            child: ListTile(
+              onTap: () {
+                if (op is Depense) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => ExpenseDetail(
+                        trxMission: op,
+                        mission: currentMission,
+                        isEntree: false,
+                      ),
                     ),
-                  ),
-                );
-              }
+                  );
+                }
+                //
+                if (op is Entree) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => ExpenseDetail(
+                        trxMission: op,
+                        mission: currentMission,
+                        isEntree: true,
+                      ),
+                    ),
+                  );
+                }
+              },
               //
-              if (op is Entree) {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => ExpenseDetail(
-                      trxMission: op,
-                      mission: currentMission,
-                      isEntree: true,
+              leading: op is Entree
+                  ? Icon(
+                      CupertinoIcons.arrow_up_circle_fill,
+                      color: Theme.of(context).colorScheme.secondary,
+                      size: 32,
+                    )
+                  : Icon(
+                      CupertinoIcons.arrow_down_circle_fill,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 32,
                     ),
-                  ),
-                );
-              }
-            },
-            //
-            leading: op is Entree
-                ? Icon(
-                    CupertinoIcons.arrow_up_circle_fill,
-                    color: Theme.of(context).colorScheme.secondary,
-                    size: 32,
-                  )
-                : Icon(
-                    CupertinoIcons.arrow_down_circle_fill,
-                    color: Theme.of(context).colorScheme.primary,
-                    size: 32,
-                  ),
-            title: Text(
-              op.description,
-              style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white
-                    : Colors.black,
-                fontWeight: FontWeight.w600,
+              title: Text(
+                op.description,
+                style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-            subtitle: Text(
-              formattedDate.format(op.createdAt),
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-            trailing: op is Entree
-                ? Text(
-                    "+${formatter.format(double.parse(op.montant.toString()))}",
-                    style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white
-                          : CupertinoColors.systemGreen,
-                      fontWeight: FontWeight.w600,
+              subtitle: Text(
+                formattedDate.format(op.createdAt),
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+              trailing: op is Entree
+                  ? Text(
+                      "+${formatter.format(double.parse(op.montant.toString()))}",
+                      style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : CupertinoColors.systemGreen,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    )
+                  : Text(
+                      "-${formatter.format(double.parse(op.montant.toString()))}",
+                      style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.red,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  )
-                : Text(
-                    "-${formatter.format(double.parse(op.montant.toString()))}",
-                    style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white
-                          : Colors.red,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+            ),
           );
         },
       ),

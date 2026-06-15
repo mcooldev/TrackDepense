@@ -220,36 +220,39 @@ class _ProfileState extends State<Profile> {
                       child: Column(
                         children: [
                           // Reset password
-                          ListTile(
-                            onTap: () async {
-                              await PocketBaseDb.instance
-                                  .resetPassword(
-                                    context,
-                                    currentUser?.getStringValue("email"),
-                                  )
-                                  .then((_) {
-                                    if (!context.mounted) return;
-                                    Navigator.pushNamed(
+                          Material(
+                            color: Colors.transparent,
+                            child: ListTile(
+                              onTap: () async {
+                                await PocketBaseDb.instance
+                                    .resetPassword(
                                       context,
-                                      "/resetPassword",
-                                    );
-                                  });
-                            },
-                            leading: Icon(
-                              CupertinoIcons.lock,
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
-                            title: Text(
-                              "Modifier mot de passe",
-                              style: Theme.of(context).textTheme.bodyLarge!
-                                  .copyWith(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurface,
-                                  ),
-                            ),
-                            trailing: const Icon(
-                              CupertinoIcons.chevron_forward,
+                                      currentUser?.getStringValue("email"),
+                                    )
+                                    .then((_) {
+                                      if (!context.mounted) return;
+                                      Navigator.pushNamed(
+                                        context,
+                                        "/resetPassword",
+                                      );
+                                    });
+                              },
+                              leading: Icon(
+                                CupertinoIcons.lock,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                              title: Text(
+                                "Modifier mot de passe",
+                                style: Theme.of(context).textTheme.bodyLarge!
+                                    .copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface,
+                                    ),
+                              ),
+                              trailing: const Icon(
+                                CupertinoIcons.chevron_forward,
+                              ),
                             ),
                           ),
                           Divider(
@@ -260,25 +263,28 @@ class _ProfileState extends State<Profile> {
                                 : Colors.grey.withValues(alpha: 0.3),
                           ),
                           // Contact support
-                          ListTile(
-                            onTap: () {
-                              Navigator.pushNamed(context, "/support");
-                            },
-                            leading: Icon(
-                              CupertinoIcons.envelope,
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
-                            title: Text(
-                              "Contacter le support",
-                              style: Theme.of(context).textTheme.bodyLarge!
-                                  .copyWith(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurface,
-                                  ),
-                            ),
-                            trailing: const Icon(
-                              CupertinoIcons.chevron_forward,
+                          Material(
+                            color: Colors.transparent,
+                            child: ListTile(
+                              onTap: () {
+                                Navigator.pushNamed(context, "/support");
+                              },
+                              leading: Icon(
+                                CupertinoIcons.envelope,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                              title: Text(
+                                "Contacter le support",
+                                style: Theme.of(context).textTheme.bodyLarge!
+                                    .copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface,
+                                    ),
+                              ),
+                              trailing: const Icon(
+                                CupertinoIcons.chevron_forward,
+                              ),
                             ),
                           ),
                           Divider(
@@ -289,34 +295,37 @@ class _ProfileState extends State<Profile> {
                                 : Colors.grey.withValues(alpha: 0.3),
                           ),
                           // Theme preferences
-                          ListTile(
-                            leading: Icon(
-                              CupertinoIcons.paintbrush,
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
-                            title: Text(
-                              "Thème 🌝️ • 🌚",
-                              style: Theme.of(context).textTheme.bodyLarge!
-                                  .copyWith(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurface,
-                                  ),
-                            ),
-                            trailing: Switch(
-                              value: themeProv.isSwitched,
-                              //
-                              inactiveThumbColor: Colors.white,
-                              inactiveTrackColor: Colors.grey.shade400,
-                              //
-                              trackOutlineColor: const WidgetStatePropertyAll(
-                                Colors.transparent,
+                          Material(
+                            color: Colors.transparent,
+                            child: ListTile(
+                              leading: Icon(
+                                CupertinoIcons.paintbrush,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
-                              //
-                              onChanged: (newValue) {
-                                // todo: theme preferences switch
-                                themeProv.toggleTheme();
-                              },
+                              title: Text(
+                                "Thème 🌝️ • 🌚",
+                                style: Theme.of(context).textTheme.bodyLarge!
+                                    .copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface,
+                                    ),
+                              ),
+                              trailing: Switch(
+                                value: themeProv.isSwitched,
+                                //
+                                inactiveThumbColor: Colors.white,
+                                inactiveTrackColor: Colors.grey.shade400,
+                                //
+                                trackOutlineColor: const WidgetStatePropertyAll(
+                                  Colors.transparent,
+                                ),
+                                //
+                                onChanged: (newValue) {
+                                  // todo: theme preferences switch
+                                  themeProv.toggleTheme();
+                                },
+                              ),
                             ),
                           ),
                         ],
