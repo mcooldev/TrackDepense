@@ -78,6 +78,7 @@ class _ClosedMissionsState extends State<ClosedMissions> {
       builder: (_, prov, trxProv, _) {
         return Scaffold(
           appBar: AppBar(
+            surfaceTintColor: Colors.white,
             title: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [

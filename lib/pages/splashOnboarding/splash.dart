@@ -18,8 +18,8 @@ class _SplashState extends State<Splash> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkIsFirstTime(context);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _checkIsFirstTime(context);
     });
   }
 
@@ -43,10 +43,9 @@ class _SplashState extends State<Splash> {
         }
         Navigator.pushReplacementNamed(context, "/loginSignup");
         return;
+      } else {
+        Navigator.pushReplacementNamed(context, "/authGate");
       }
-      //
-      Navigator.pushReplacementNamed(context, "/authGate");
-      //
     } catch (e) {
       log(e.toString());
     }

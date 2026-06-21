@@ -41,10 +41,15 @@ class _ProfileState extends State<Profile> {
     return Consumer<UserProvider>(
       builder: (_, prov, _) {
         return Scaffold(
+
+          // ======================================================
+          // APP BAR SECTION
+          // ======================================================
           appBar: AppBar(
             title: const Text("Mon profil"),
             centerTitle: false,
             automaticallyImplyLeading: false,
+            surfaceTintColor: Colors.white,
             actions: [
               GestureDetector(
                 onTap: () => prov.signOutDialog(context),
@@ -89,6 +94,10 @@ class _ProfileState extends State<Profile> {
               ),
             ],
           ),
+          
+          // ======================================================
+          // BODY SECTION
+          // ======================================================
           body: Stack(
             children: [
               /// Pages

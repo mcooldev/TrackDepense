@@ -136,7 +136,7 @@ class UserProvider with ChangeNotifier {
   Future<void> _doChekAuth() async {
     try {
       ///
-      await checkSubscription();
+      await Future.microtask(() => checkSubscription());
 
       ///
       if (pb.authStore.token.isNotEmpty && pb.authStore.isValid) {

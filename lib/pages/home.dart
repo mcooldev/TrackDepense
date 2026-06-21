@@ -128,6 +128,7 @@ class _HomeState extends State<Home> {
           ///
           appBar: AppBar(
             automaticallyImplyLeading: false,
+            surfaceTintColor: Colors.white,
             title: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
